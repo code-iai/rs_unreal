@@ -1,0 +1,8 @@
+annotator:
+  implementation: rs_getRenderedView
+  name: GetRenderedView
+capabilities:
+  inputs: []
+  outputs: []
+parameters:
+  test_param: 0.01

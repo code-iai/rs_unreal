@@ -1,0 +1,14 @@
+ae:
+  name: rs_w_bs
+fixedflow:
+  - CollectionReader
+  - ImagePreprocessor
+  - PointCloudFilter
+  - NormalEstimator
+  - PlaneAnnotator
+  - ImageSegmentationAnnotator
+  - PointCloudClusterExtractor
+  - ClusterMerger
+  - GetRenderedView
+CollectionReader:
+  camera_config_files: ['config_kinect_robot_without_tf.ini']
