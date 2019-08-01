@@ -66,6 +66,8 @@ private:
   pcl::PointCloud<pcl::PointXYZ>::Ptr sphereCloud_;
   pcl::PointCloud<pcl::PointXYZRGBA>::Ptr viewCloud_;
 
+  int camera_id_ = 0;
+
   bool publishAsMarkers_;
 
 public:
@@ -84,7 +86,7 @@ public:
     {
        outError("Couldn't read unreal vision ini file. This will break this annotator");
     }
-    unrealBridge_ = new UnrealVisionBridge(pt);
+    ///unrealBridge_ = new UnrealVisionBridge(pt);
 
     image_pub_ = it_.advertise("rendered_image", 5, false);
     marker_pub_ = nh_.advertise<visualization_msgs::MarkerArray>("markers", 1, true);
@@ -97,6 +99,12 @@ public:
     thread_ = std::thread(&TFBroadcasterWrapper::run, &broadCasterObject_);
     sphereCloud_ = boost::make_shared<pcl::PointCloud<pcl::PointXYZ>>();
     viewCloud_ = boost::make_shared<pcl::PointCloud<pcl::PointXYZRGBA>>();
+
+    if(ctx.isParameterDefined("camera_id"))
+        ctx.extractValue("camera_id", camera_id_);
+
+    outInfo("Reading camera data from camera id:" << camera_id_);
+
     return UIMA_ERR_NONE;
   }
 
@@ -288,6 +296,8 @@ public:
     pcl::PointCloud<pcl::PointXYZRGBA>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZRGBA>());
     cas.get(VIEW_CLOUD, *cloud);
 
+    // return UIMA_ERR_NONE;
+    
     // rs::Plane &plane  = planes[0];
     // std::vector<int> planeInliers = plane.inliers.get();
     // Eigen::Vector4f temp;
@@ -331,25 +341,25 @@ public:
     //
     //
     
-    int count = 0; //this is a hack
-    while(!unrealBridge_->newData() && count < 5)
-    {
-      count++;
-      outInfo("Waiting for Unreal");
-      usleep(100);
-    }
-    if(count >= 5)
-    {
-      return UIMA_ERR_NONE;
-    }
+    //int count = 0; //this is a hack
+    //while(!unrealBridge_->newData() && count < 5)
+    //{
+    //  count++;
+    //  outInfo("Waiting for Unreal");
+    //  usleep(100);
+    //}
+    //if(count >= 5)
+    //{
+    //  return UIMA_ERR_NONE;
+    //}
 
-    unrealBridge_->setData(tcas);
+    //unrealBridge_->setData(tcas);
 
 
     sensor_msgs::CameraInfo cam_info;
-    cas.get(VIEW_OBJECT_IMAGE, object_);
-    cas.get(VIEW_COLOR_IMAGE, rgb_);
-    cas.get(VIEW_CAMERA_INFO, cam_info);
+    cas.get(VIEW_OBJECT_IMAGE, object_, camera_id_);
+    cas.get(VIEW_COLOR_IMAGE, rgb_, camera_id_);
+    cas.get(VIEW_CAMERA_INFO, cam_info, camera_id_);
 
     // std::map<std::string, cv::Vec3b> objectMap;
     // cas.get(VIEW_OBJECT_MAP, objectMap);

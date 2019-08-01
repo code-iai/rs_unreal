@@ -11,4 +11,4 @@ fixedflow:
   - ClusterMerger
   - GetRenderedView
 CollectionReader:
-  camera_config_files: ['config_kinect_robot_without_tf.ini']
+  camera_config_files: ['config_kinect_robot_without_tf.ini','config_unreal_vision_localhost.ini']

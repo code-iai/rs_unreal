@@ -5,4 +5,4 @@ capabilities:
   inputs: []
   outputs: []
 parameters:
-  test_param: 0.01
+  camera_id: 1
