@@ -75,7 +75,8 @@ private:
   enum
   {
     ONLY_RENDER,
-    MIXED_WITH_CAMZERO
+    MIXED_WITH_CAMZERO,
+    ONLY_OBJECT_MASK
   } dispMode;
 
 public:
@@ -135,10 +136,6 @@ public:
     std::vector<rs::Plane> planes;
     scene.annotations.filter(planes);
 
-    // if(planes.empty())
-    // {
-    //   return UIMA_ERR_NONE;
-    // }
     pcl::PointCloud<pcl::PointXYZRGBA>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZRGBA>());
     cas.get(VIEW_CLOUD, *cloud);
 
@@ -147,9 +144,27 @@ public:
     cas.get(VIEW_OBJECT_IMAGE, object_, camera_id_);
     cas.get(VIEW_COLOR_IMAGE, rgb_, camera_id_);
     cas.get(VIEW_CAMERA_INFO, cam_info, camera_id_);
+
     if(dispMode == MIXED_WITH_CAMZERO)
       cas.get(VIEW_COLOR_IMAGE, rgb_main_cam_, 0);
 
+    std::map<std::string, cv::Vec3b> objectMap;
+    cas.get(VIEW_OBJECT_MAP, objectMap, camera_id_);
+
+    // Muesli_2
+    // UnrealCV maps contain the ID NAME of the world. Not the actor label name
+    //
+    try{
+      cv::Vec3b muesli_color = objectMap.at("Muesli_2");
+      unsigned char blue   = muesli_color.val[0];
+      unsigned char green = muesli_color.val[1];
+      unsigned char red  = muesli_color.val[2];
+      outWarn("Color of muesli: " << ((int)red) << " " << ((int)green) << " " << ((int)blue) );
+    }catch(...)
+    {
+      outError("Exception while catch obj from color map. Maybe the given obj name is not in the mapping");
+      return UIMA_ERR_NONE;
+    }
 
     return UIMA_ERR_NONE;
   }
@@ -167,6 +182,10 @@ public:
       dispMode = MIXED_WITH_CAMZERO;
       outWarn("Switching to MIXED WITH CAMZERO");
       break;
+    case '3':
+      dispMode = ONLY_OBJECT_MASK;
+      outWarn("Switching to OBJECT MASK");
+      break;
     }
 
     return true;
@@ -178,20 +197,23 @@ public:
 
     if(!rgb_.empty())
     {
-      if(dispMode==MIXED_WITH_CAMZERO)
+      switch(dispMode)
       {
-        std::cout << "Width : " << rgb_.size().width << std::endl;
-        std::cout << "Height: " << rgb_.size().height << std::endl; 
-        std::cout << "Width : " << rgb_main_cam_.size().width << std::endl;
-        std::cout << "Height: " << rgb_main_cam_.size().height << std::endl; 
-        std::cout << "----" << std::endl;
-        addWeighted(rgb_, 0.5, rgb_main_cam_, 0.5, 0.0, disp);
+        case MIXED_WITH_CAMZERO:
+          // std::cout << "Width : " << rgb_.size().width << std::endl;
+          // std::cout << "Height: " << rgb_.size().height << std::endl; 
+          // std::cout << "Width : " << rgb_main_cam_.size().width << std::endl;
+          // std::cout << "Height: " << rgb_main_cam_.size().height << std::endl; 
+          // std::cout << "----" << std::endl;
+          addWeighted(rgb_, 0.5, rgb_main_cam_, 0.5, 0.0, disp);
+        break;
+        case ONLY_OBJECT_MASK:
+          disp = object_.clone();
+        break;
+
+        default:
+          disp  = rgb_.clone();
       }
-      else
-      {
-        disp  = rgb_.clone();
-      }
-      // addWeighted(disp, 0.5, rgb_main_cam_, 0.5)
     }
     else
     {
