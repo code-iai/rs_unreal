@@ -59,6 +59,7 @@ private:
   image_transport::ImageTransport it_;
   cv::Mat object_, rgb_;
   cv::Mat rgb_main_cam_; // shall only be used when this annotator runs as a secondary cam 
+  cv::Mat segmented_object_from_mask_;
 
   std::thread thread_;
   TFBroadcasterWrapper broadCasterObject_;
@@ -76,7 +77,8 @@ private:
   {
     ONLY_RENDER,
     MIXED_WITH_CAMZERO,
-    ONLY_OBJECT_MASK
+    ONLY_OBJECT_MASK,
+    TEST_MODE
   } dispMode;
 
 public:
@@ -159,7 +161,34 @@ public:
       unsigned char blue   = muesli_color.val[0];
       unsigned char green = muesli_color.val[1];
       unsigned char red  = muesli_color.val[2];
-      outWarn("Color of muesli: " << ((int)red) << " " << ((int)green) << " " << ((int)blue) );
+      outWarn("Color of muesli (r g b): " << ((int)red) << " " << ((int)green) << " " << ((int)blue) );
+
+      // threshold muesli
+      cv::inRange(object_, cv::Scalar(blue, green, red), cv::Scalar(blue, green, red), segmented_object_from_mask_);
+      // find contours
+      std::vector<std::vector<cv::Point> > contours;
+      std::vector<cv::Vec4i> hierarchy;
+
+      cv::findContours( segmented_object_from_mask_, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0) );
+
+      if(contours.size()!=1)
+      {
+        outError("Found  " << contours.size() << "contour(s) in object mask with the given color when it should only be exactly one contour. This shouldn't happen. ");
+        return UIMA_ERR_NONE;
+      }
+
+      cv::Rect roi = boundingRect(contours[0]);
+      rs::ImageROI imageROI = rs::create<rs::ImageROI>(tcas);
+      imageROI.mask(rs::conversion::to(tcas, segmented_object_from_mask_));
+      imageROI.roi(rs::conversion::to(tcas, roi));
+      outWarn("ROI: "<< roi);
+
+
+      // TODO
+      // - Check exception handling, way too big now
+      // - Annotate ROI AND image to clusters
+      // - Have a seperate annotator that analyses the clusters and checks for similarity
+      //
     }catch(...)
     {
       outError("Exception while catch obj from color map. Maybe the given obj name is not in the mapping");
@@ -186,6 +215,10 @@ public:
       dispMode = ONLY_OBJECT_MASK;
       outWarn("Switching to OBJECT MASK");
       break;
+    case '4':
+      dispMode = TEST_MODE;
+      outWarn("Switching to TEST MODE");
+      break;
     }
 
     return true;
@@ -210,7 +243,9 @@ public:
         case ONLY_OBJECT_MASK:
           disp = object_.clone();
         break;
-
+        case TEST_MODE:
+          disp = segmented_object_from_mask_.clone();
+        break;
         default:
           disp  = rgb_.clone();
       }
