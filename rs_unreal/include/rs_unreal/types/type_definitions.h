@@ -4,5 +4,7 @@
 #ifndef __RS_UNREAL_TYPE_DEFINITIONS_H__
 #define __RS_UNREAL_TYPE_DEFINITIONS_H__
 
+#define RS_UNREAL_SIMBS_SIMBELIEFSTATEOBJECT "rs_unreal.simbs.SimBeliefStateObject"
+#define RS_UNREAL_SIMBS_CENTROID "rs_unreal.simbs.Centroid"
 
 #endif /* __RS_UNREAL_TYPE_DEFINITIONS_H__ */

@@ -5,6 +5,7 @@
 #define __RS_UNREAL_ALL_TYPES_H__
 
 #include <rs_unreal/types/type_definitions.h>
+#include <rs_unreal/types/simbs_types.h>
 
 
 #endif /* __RS_UNREAL_ALL_TYPES_H__ */

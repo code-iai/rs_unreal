@@ -40,8 +40,8 @@
 #include <cmath>
 #include <chrono>
 
-
-
+// Types from this package
+#include <rs_unreal/types/all_types.h>
 
 using namespace uima;
 
@@ -157,7 +157,8 @@ public:
     // UnrealCV maps contain the ID NAME of the world. Not the actor label name
     //
     try{
-      cv::Vec3b muesli_color = objectMap.at("Muesli_2");
+      std::string actorIdNameOfSimObject = "Muesli_2";
+      cv::Vec3b muesli_color = objectMap.at(actorIdNameOfSimObject);
       unsigned char blue   = muesli_color.val[0];
       unsigned char green = muesli_color.val[1];
       unsigned char red  = muesli_color.val[2];
@@ -183,6 +184,37 @@ public:
       imageROI.roi(rs::conversion::to(tcas, roi));
       outWarn("ROI: "<< roi);
 
+      //
+      // Write annotations 
+      // TODO annotate the right cluster with the right object
+      // TODO find similarity measure : which UE4 object is which cluster?
+      //
+      // rs::Scene scene = cas.getScene();
+      std::vector<rs::ObjectHypothesis> clusters;
+      scene.identifiables.filter(clusters);
+      for (auto cluster:clusters)
+      {
+        rs::ObjectHypothesis &c = cluster;
+
+        rs_unreal::SimBeliefStateObject sim_annotation  = rs::create<rs_unreal::SimBeliefStateObject>(tcas);
+        sim_annotation.roi.set(imageROI);
+        sim_annotation.actorName.set(actorIdNameOfSimObject);
+        sim_annotation.mask_color_r.set(red);
+        sim_annotation.mask_color_g.set(green);
+        sim_annotation.mask_color_b.set(blue);
+        
+        cv::Mat croppedRef(object_, roi);
+        // cv::Mat cropped;
+        // Copy the data into new matrix // shouldn't be necessary because rs conv to copies the data
+        // croppedRef.copyTo(cropped);
+        // rs::Mat cropped_rs_mat = rs::create<rs::Mat>(tcas);
+        rs::Mat cropped_rs_mat = rs::conversion::to(tcas,croppedRef);
+        sim_annotation.rgbImage.set(cropped_rs_mat);
+
+        // Append complete annotation to the cluster
+        c.annotations.append(sim_annotation);
+
+      }
 
       // TODO
       // - Check exception handling, way too big now
