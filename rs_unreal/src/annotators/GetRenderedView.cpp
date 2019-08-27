@@ -203,7 +203,7 @@ public:
         sim_annotation.mask_color_g.set(green);
         sim_annotation.mask_color_b.set(blue);
         
-        cv::Mat croppedRef(object_, roi);
+        cv::Mat croppedRef(rgb_, roi);
         // cv::Mat cropped;
         // Copy the data into new matrix // shouldn't be necessary because rs conv to copies the data
         // croppedRef.copyTo(cropped);
