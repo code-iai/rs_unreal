@@ -54,5 +54,5 @@ find_additional_files()
 rs_add_library(rs_getRenderedView src/annotators/GetRenderedView.cpp)
 target_link_libraries(rs_getRenderedView ${PCL_LIBRARIES} ${catkin_LIBRARIES})
 
-rs_add_library(rs_ObjectHyothesisBeliefStateComparison src/ObjectHyothesisBeliefStateComparison.cpp)
+rs_add_library(rs_ObjectHyothesisBeliefStateComparison src/annotators/ObjectHyothesisBeliefStateComparison.cpp)
 target_link_libraries(rs_ObjectHyothesisBeliefStateComparison ${catkin_LIBRARIES})
