@@ -87,6 +87,7 @@ public:
     scene.identifiables.filter(clusters);
     int idx = 0;
 
+    int row_offset_y = 50;
     int dist_between_clusters_y = 260;
     int image_square_size = 250;
 
@@ -121,7 +122,7 @@ public:
       cv::Size s = belief_state_object_crop.size();
       outInfo("  Cropped Belief State Image Dims (width x height): " << s.width << "x" <<  s.height);
 
-      int y_for_cluster_row = idx * dist_between_clusters_y;
+      int y_for_cluster_row = row_offset_y + idx * dist_between_clusters_y;
 
       // put the belief state image onto the canvas
       cv::Mat squared_bs;
@@ -150,13 +151,7 @@ public:
               cv::Rect(0,y_for_cluster_row,squared_real_img.cols, squared_real_img.rows)
           )
       );
-      // 
-      // rgb_main_cam_(real_cluster_roi).copyTo(
-      //     result_image_(
-      //         cv::Rect(0,y_for_cluster_row,real_cluster_roi.width, real_cluster_roi.height)
-      //     )
-      // );
-      
+
       cv::line(result_image_, 
                cv::Point(0,y_for_cluster_row + dist_between_clusters_y - 1),
                cv::Point(result_image_.cols-1, y_for_cluster_row + dist_between_clusters_y -1 ),
