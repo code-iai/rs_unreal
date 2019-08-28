@@ -37,6 +37,37 @@ public:
     outInfo("destroy");
     return UIMA_ERR_NONE;
   }
+  // cv::Mat getSquareImage( cv::Mat& img, int target_width = 300 )
+  void getSquareImage( cv::Mat& img, cv::Mat& out, int target_width = 300 )
+  {
+    int width = img.cols,
+        height = img.rows;
+
+    cv::Mat square = cv::Mat::zeros( target_width, target_width, img.type() );
+
+    int max_dim = ( width >= height ) ? width : height;
+    float scale = ( ( float ) target_width ) / max_dim;
+    cv::Rect roi;
+    if ( width >= height )
+    {
+      roi.width = target_width;
+      roi.x = 0;
+      roi.height = height * scale;
+      roi.y = ( target_width - roi.height ) / 2;
+    }
+    else
+    {
+      roi.y = 0;
+      roi.height = target_width;
+      roi.width = width * scale;
+      roi.x = ( target_width - roi.width ) / 2;
+    }
+
+    outWarn("Square ROI: " << roi);
+
+    cv::resize( img, square( roi ), roi.size() );
+    square.copyTo(out);
+  }
 
   TyErrorId processWithLock(CAS &tcas, ResultSpecification const &res_spec)
   {
@@ -56,7 +87,8 @@ public:
     scene.identifiables.filter(clusters);
     int idx = 0;
 
-    int dist_between_clusters_y = 300;
+    int dist_between_clusters_y = 260;
+    int image_square_size = 250;
 
     for (auto cluster:clusters)
     {
@@ -87,43 +119,43 @@ public:
       cv::Mat belief_state_object_crop;
       rs::conversion::from(sim_annotation.rgbImage(), belief_state_object_crop);
       cv::Size s = belief_state_object_crop.size();
-
       outInfo("  Cropped Belief State Image Dims (width x height): " << s.width << "x" <<  s.height);
 
-      // cv::Mat croppedRef(object_, roi);
-      // // cv::Mat cropped;
-      // // Copy the data into new matrix // shouldn't be necessary because rs conv to copies the data
-      // // croppedRef.copyTo(cropped);
-      // // rs::Mat cropped_rs_mat = rs::create<rs::Mat>(tcas);
-      // rs::Mat cropped_rs_mat = rs::conversion::to(tcas,croppedRef);
-      // sim_annotation.rgbImage.set(cropped_rs_mat);
-
-      // // Append complete annotation to the cluster
-      // c.annotations.append(sim_annotation);
-      //
       int y_for_cluster_row = idx * dist_between_clusters_y;
 
-      belief_state_object_crop.copyTo(
+      // put the belief state image onto the canvas
+      cv::Mat squared_bs;
+      getSquareImage(belief_state_object_crop, squared_bs, image_square_size);
+
+      squared_bs.copyTo(
           result_image_(
-              cv::Rect(400, y_for_cluster_row ,belief_state_object_crop.cols, belief_state_object_crop.rows)
+              cv::Rect(image_square_size, y_for_cluster_row ,squared_bs.cols, squared_bs.rows)
           )
       ); 
 
-
-
       // get the data from the real camera
       rs::ImageROI image_rois = cluster.rois.get();
-      cv::Mat real_cluster_rgb;
       cv::Rect real_cluster_roi;
       rs::conversion::from(image_rois.roi_hires(), real_cluster_roi);
       outWarn("  ROI for real object image: "<< real_cluster_roi);
       outInfo("Real img" << rgb_main_cam_.size());
 
-      rgb_main_cam_(real_cluster_roi).copyTo(
+      cv::Mat squared_real_img;
+      cv::Mat real_cluster_rgb = rgb_main_cam_(real_cluster_roi);
+
+      getSquareImage(real_cluster_rgb, squared_real_img, image_square_size);
+
+      squared_real_img.copyTo(
           result_image_(
-              cv::Rect(0,y_for_cluster_row,real_cluster_roi.width, real_cluster_roi.height)
+              cv::Rect(0,y_for_cluster_row,squared_real_img.cols, squared_real_img.rows)
           )
       );
+      // 
+      // rgb_main_cam_(real_cluster_roi).copyTo(
+      //     result_image_(
+      //         cv::Rect(0,y_for_cluster_row,real_cluster_roi.width, real_cluster_roi.height)
+      //     )
+      // );
       
       cv::line(result_image_, 
                cv::Point(0,y_for_cluster_row + dist_between_clusters_y - 1),
