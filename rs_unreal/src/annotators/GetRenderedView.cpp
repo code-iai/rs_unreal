@@ -68,7 +68,9 @@ private:
   pcl::PointCloud<pcl::PointXYZ>::Ptr sphereCloud_;
   pcl::PointCloud<pcl::PointXYZRGBA>::Ptr viewCloud_;
 
+  // Annotator parameters from YAML config
   int camera_id_ = 0;
+  bool use_hd_images_ = false;
 
   bool publishAsMarkers_;
 
@@ -113,8 +115,12 @@ public:
 
     if(ctx.isParameterDefined("camera_id"))
         ctx.extractValue("camera_id", camera_id_);
+    if(ctx.isParameterDefined("use_hd_images"))
+        ctx.extractValue("use_hd_images", use_hd_images_);
+
 
     outInfo("Reading camera data from camera id:" << camera_id_);
+    outInfo("Use HD Image streams from Main Cam and Belief State? " << use_hd_images_);
 
     return UIMA_ERR_NONE;
   }
@@ -231,30 +237,33 @@ public:
   }
 
 
-  bool callbackKey(const int key, const Source source)
-  {
-    switch(key)
-    {
-    case '1':
-      dispMode = ONLY_RENDER;
-      outWarn("Switching to ONLY_RENDER mode");
-      break;
-    case '2':
-      dispMode = MIXED_WITH_CAMZERO;
-      outWarn("Switching to MIXED WITH CAMZERO");
-      break;
-    case '3':
-      dispMode = ONLY_OBJECT_MASK;
-      outWarn("Switching to OBJECT MASK");
-      break;
-    case '4':
-      dispMode = TEST_MODE;
-      outWarn("Switching to TEST MODE");
-      break;
-    }
+  //
+  // TODO: This slows down the whole system massively - Try to find a better way
+  // bool callbackKey(const int key, const Source source)
+  // {
+  //   switch(key)
+  //   {
+  //   case '1':
+  //     dispMode = ONLY_RENDER;
+  //     outWarn("Switching to ONLY_RENDER mode");
+  //     break;
+  //   case '2':
+  //     dispMode = MIXED_WITH_CAMZERO;
+  //     outWarn("Switching to MIXED WITH CAMZERO");
+  //     break;
+  //   case '3':
+  //     dispMode = ONLY_OBJECT_MASK;
+  //     outWarn("Switching to OBJECT MASK");
+  //     break;
+  //   case '4':
+  //     dispMode = TEST_MODE;
+  //     outWarn("Switching to TEST MODE");
+  //     break;
+  //   }
 
-    return true;
-  }
+  //   return true;
+  // }
+
   void drawImageWithLock(cv::Mat &disp)
   {
     // disp  = rgb_.clone();
