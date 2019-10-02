@@ -115,8 +115,8 @@ public:
 
     if(ctx.isParameterDefined("camera_id"))
         ctx.extractValue("camera_id", camera_id_);
-    if(ctx.isParameterDefined("use_hd_images"))
-        ctx.extractValue("use_hd_images", use_hd_images_);
+    if(ctx.isParameterDefined("use_hd_images_for_main_cam"))
+        ctx.extractValue("use_hd_images_for_main_cam", use_hd_images_);
 
 
     outInfo("Reading camera data from camera id:" << camera_id_);
@@ -149,12 +149,41 @@ public:
 
 
     sensor_msgs::CameraInfo cam_info;
-    cas.get(VIEW_OBJECT_IMAGE, object_, camera_id_);
-    cas.get(VIEW_COLOR_IMAGE, rgb_, camera_id_);
-    cas.get(VIEW_CAMERA_INFO, cam_info, camera_id_);
 
+
+    if(use_hd_images_){
+      cas.get(VIEW_OBJECT_IMAGE_HD, object_, camera_id_);
+      cas.get(VIEW_COLOR_IMAGE_HD, rgb_, camera_id_);
+      cas.get(VIEW_CAMERA_INFO_HD, cam_info, camera_id_);
+    }else{
+      cas.get(VIEW_OBJECT_IMAGE, object_, camera_id_);
+      cas.get(VIEW_COLOR_IMAGE, rgb_, camera_id_);
+      cas.get(VIEW_CAMERA_INFO, cam_info, camera_id_);
+    }
+
+    // Please ensure when using cam mixing that both resolutions
+    // 'ue4' and 'main cam' are the same
+    //
+    // Also note the image handling in the individual Bridge classes in RS
+    // for your desired resolution.
+    // The KinectBridge for example crops the 1280x1024 res to 1280x960
     if(dispMode == MIXED_WITH_CAMZERO)
-      cas.get(VIEW_COLOR_IMAGE, rgb_main_cam_, 0);
+    {
+      if(use_hd_images_)
+      {
+        outInfo("Getting HD kinect image in MIXED_WITH_CAMZERO mode");
+        cas.get(VIEW_COLOR_IMAGE_HD, rgb_main_cam_, 0);
+      }else
+      {
+        cas.get(VIEW_COLOR_IMAGE, rgb_main_cam_, 0);
+        outInfo("Getting HD kinect image in MIXED_WITH_CAMZERO mode");
+      }
+
+      // Check that both resolutions match
+      if( rgb_.cols != rgb_main_cam_.cols ||  rgb_.rows != rgb_main_cam_.rows ){
+        outError("MIXED_WITH_CAMZERO active but resolutions of the main cam (" << rgb_main_cam_.cols << "x" << rgb_main_cam_.rows << ") and the synthetic views ("<< rgb_.cols << "x" << rgb_.rows << ") differ");
+      }
+    }
 
     std::map<std::string, cv::Vec3b> objectMap;
     cas.get(VIEW_OBJECT_MAP, objectMap, camera_id_);
