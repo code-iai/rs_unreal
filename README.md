@@ -4,6 +4,7 @@ RoboSherlock functionality to interact with UE4
 Test the current functionality:
 ````
 roscore
+roslaunch rosbridge_server rosbridge_websocket.launch
 rosbag play test.bag --loop --clock #test.bag from the RoboSherlock tutorials
 rosrun robosherlock run _ae:=rs_w_bs _vis:=true
 ````
