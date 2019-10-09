@@ -1,4 +1,5 @@
 #include "rs_ue4beliefstate/Spawner.h"
+#include "geometry_msgs/Pose.h"
 #include <rs_ue4beliefstate/BeliefStateCommunication.h>
 
 int main(int argc, char **argv)
@@ -9,7 +10,15 @@ int main(int argc, char **argv)
 
   ROS_INFO_STREAM("Testing the BS Communication Lib");
   BeliefStateCommunication bsc;
-  bsc.SetCameraPose();
+  geometry_msgs::Pose p;
+  p.position.x = 1.3;
+  p.position.y = -2.1;
+  p.position.z = 0.8;
+  p.orientation.x = 0.0;
+  p.orientation.y = 0.0;
+  p.orientation.z = 0.0;
+  p.orientation.w = 1.0;
+  bsc.SetCameraPose(p);
 
   ros::ServiceClient client = n.serviceClient<world_control_msgs::SpawnModel>("pie_rwc/spawn_model");
   world_control_msgs::SpawnModel srv;
