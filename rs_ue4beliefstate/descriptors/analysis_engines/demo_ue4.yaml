@@ -1,5 +1,5 @@
 ae:
-  name: demo
+  name: demo_ue4
 fixedflow:
   - CollectionReader
   - ImagePreprocessor
