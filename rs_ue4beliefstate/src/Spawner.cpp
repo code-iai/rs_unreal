@@ -1,4 +1,5 @@
 #include "rs_ue4beliefstate/Spawner.h"
+#include <rs_ue4beliefstate/BeliefStateCommunication.h>
 
 int main(int argc, char **argv)
 {
@@ -6,6 +7,9 @@ int main(int argc, char **argv)
 
   ros::NodeHandle n;
 
+  ROS_INFO_STREAM("Testing the BS Communication Lib");
+  BeliefStateCommunication bsc;
+  bsc.SetCameraPose();
 
   ros::ServiceClient client = n.serviceClient<world_control_msgs::SpawnModel>("pie_rwc/spawn_model");
   world_control_msgs::SpawnModel srv;

@@ -43,7 +43,7 @@ include_directories(
 
 
 add_executable(Spawner src/Spawner.cpp)
-target_link_libraries(Spawner ${catkin_LIBRARIES})
+target_link_libraries(Spawner ${catkin_LIBRARIES} rs_beliefstatecomm)
 
 add_library(rs_beliefstatecomm SHARED
   src/BeliefStateCommunication.cpp
