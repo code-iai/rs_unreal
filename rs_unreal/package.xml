@@ -52,6 +52,9 @@
   <build_depend>robosherlock</build_depend>
   <build_export_depend>robosherlock</build_export_depend>
   <exec_depend>robosherlock</exec_depend>
+  <build_depend>rs_ue4beliefstate</build_depend>
+  <build_export_depend>rs_ue4beliefstate</build_export_depend>
+  <exec_depend>rs_ue4beliefstate</exec_depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->

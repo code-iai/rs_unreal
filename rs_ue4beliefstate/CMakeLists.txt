@@ -23,7 +23,7 @@ configure_file(${RS_PROJECT_CONFIG} ${PROJECT_SOURCE_DIR}/cmake/${PROJECT_NAME}_
 find_include_dirs(RS_INCLUDE_DIRS_LIST)
 catkin_package(
    INCLUDE_DIRS include
-   LIBRARIES ${PROJECT_NAME}
+   LIBRARIES ${PROJECT_NAME} rs_beliefstatecomm
    CATKIN_DEPENDS roscpp robosherlock world_control_msgs
    CFG_EXTRAS ${PROJECT_NAME}_config.cmake
    )
@@ -40,8 +40,19 @@ include_directories(
         ${RS_INCLUDE_DIRS_LIST}
         ${catkin_INCLUDE_DIRS}
         )
+
+
 add_executable(Spawner src/Spawner.cpp)
 target_link_libraries(Spawner ${catkin_LIBRARIES})
+
+add_library(rs_beliefstatecomm SHARED
+  src/BeliefStateCommunication.cpp
+)
+target_link_libraries(rs_beliefstatecomm ${catkin_LIBRARIES})
+
+
+
+
 ################################################################################
 ## Update analysis engines, typesystem and include all relevant files         ##
 ################################################################################
