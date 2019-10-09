@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(rs_ue4beliefstate)
-find_package(catkin REQUIRED robosherlock)
+find_package(catkin REQUIRED robosherlock world_control_msgs roscpp)
 
 ################################################################################
 ## Constants for project                                                      ##
@@ -22,36 +22,17 @@ configure_file(${RS_PROJECT_CONFIG} ${PROJECT_SOURCE_DIR}/cmake/${PROJECT_NAME}_
 ################################################################################
 find_include_dirs(RS_INCLUDE_DIRS_LIST)
 catkin_package(
-   INCLUDE_DIRS include
-   LIBRARIES ${PROJECT_NAME} rs_beliefstatecomm
-   CATKIN_DEPENDS roscpp robosherlock world_control_msgs
    CFG_EXTRAS ${PROJECT_NAME}_config.cmake
    )
-################################################################################
-## Package dependencies                                                       ##
-################################################################################
-find_package(catkin REQUIRED COMPONENTS world_control_msgs roscpp)
 
 ################################################################################
-## Build                                                                      ##
+## Includes                                                                   ##
 ################################################################################
 include_directories(
         include
         ${RS_INCLUDE_DIRS_LIST}
         ${catkin_INCLUDE_DIRS}
         )
-
-
-add_executable(Spawner src/Spawner.cpp)
-target_link_libraries(Spawner ${catkin_LIBRARIES} rs_beliefstatecomm)
-
-add_library(rs_beliefstatecomm SHARED
-  src/BeliefStateCommunication.cpp
-)
-target_link_libraries(rs_beliefstatecomm ${catkin_LIBRARIES})
-
-
-
 
 ################################################################################
 ## Update analysis engines, typesystem and include all relevant files         ##
@@ -62,3 +43,14 @@ generate_type_system(robosherlock)
 find_additional_files()
 
 
+################################################################################
+## Objects                                                                    ##
+################################################################################
+add_executable(Spawner src/Spawner.cpp)
+target_link_libraries(Spawner ${catkin_LIBRARIES} rs_beliefstatecomm)
+add_library(rs_beliefstatecomm SHARED
+  src/BeliefStateCommunication.cpp
+)
+target_link_libraries(rs_beliefstatecomm ${catkin_LIBRARIES})
+rs_add_library(rs_UE4Spawner src/annotators/UE4Spawner.cpp)
+target_link_libraries(rs_UE4Spawner ${catkin_LIBRARIES} rs_beliefstatecomm)

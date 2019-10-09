@@ -1,0 +1,7 @@
+annotator:
+  implementation: rs_UE4Spawner
+parameters:
+  test_param: 0.01
+capabilities:
+  inputs: ['rs.scene.MergedHypothesis','rs.annotation.Pose',rs.annotation.SemanticColor]
+  outputs: {}

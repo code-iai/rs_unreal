@@ -3,11 +3,13 @@ ae:
 fixedflow:
   - CollectionReader
   - ImagePreprocessor
-  - PointCloudFilter
-  - NormalEstimator
   - PlaneAnnotator
-  - ImageSegmentationAnnotator
+  - PointCloudFilter
   - PointCloudClusterExtractor
+  - ImageSegmentationAnnotator
   - ClusterMerger
+  - Cluster3DGeometryAnnotator
+  - ClusterColorHistogramCalculator
+  - UE4Spawner
 CollectionReader:
-  camera_config_files: ['config_unreal_vision_ue4.ini']
+  camera_config_files: ['config_kinect_robot_ue4.ini']
