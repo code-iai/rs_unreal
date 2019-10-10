@@ -31,24 +31,30 @@ using namespace uima;
 class UE4Spawner : public Annotator
 {
 private:
-  float test_param;
-  ros::NodeHandle n;
-  ros::ServiceClient client; 
+  std::string domain="pie_rwc";
+  BeliefStateCommunication* bf_com;
 
 
 public:
 
   TyErrorId initialize(AnnotatorContext &ctx)
   {
-    outInfo("initialize parameters");
-    //parameter initialization
-    client = n.serviceClient<world_control_msgs::SpawnModel>("pie_rwc/spawn_model");
-    return UIMA_ERR_NONE;
+      outInfo("initializing UE4Spawner annotator ...");
+      //parameter initialization
+      if(ctx.isParameterDefined("domain"))
+      {
+           ctx.extractValue("domain", domain);
+      }
+      //defining the communicator
+      bf_com = new BeliefStateCommunication(domain);
+      return UIMA_ERR_NONE;
   }
 
   TyErrorId destroy()
   {
     outInfo("destroy");
+    if(bf_com!=nullptr)
+          free(bf_com);
     return UIMA_ERR_NONE;
   }
 
@@ -95,22 +101,9 @@ public:
       //set the mobility of the hypothesis
       srv.request.physics_properties.mobility = 2; 
 
-      //check whether or not the spawning service server was reached
-      if (!client.call(srv))
-      {
-       ROS_ERROR("Failed to call service client");
-       return 1;
-      }
+      //spawn hypothesis
+      bf_com->SpawnObject(srv);
 
-      //check the status of the respond from the server
-      if (!srv.response.success)
-      {
-       ROS_ERROR("Service call returned false");
-       return 1;
-      }
-
-      //print the ID of the spawned hypothesis
-      ROS_INFO_STREAM("Object spawned with ID " << srv.response.id);
 
     }
  

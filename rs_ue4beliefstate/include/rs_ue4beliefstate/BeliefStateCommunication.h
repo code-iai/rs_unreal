@@ -1,7 +1,7 @@
 /**
  * Copyright 2019 University of Bremen, Institute for Artificial Intelligence
  * Author(s): Patrick Mania <pmania@cs.uni-bremen.de>
- *         Franklin Kenghagho Kenfack 
+ *            Franklin Kenghagho Kenfack <fkenghag@uni-bremen.de>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,14 +19,21 @@
 #ifndef __BELIEF_STATE_COMMUNICATION_H
 #define __BELIEF_STATE_COMMUNICATION_H
 
-#include <geometry_msgs/Pose.h>
+#include "ros/ros.h"
+#include "world_control_msgs/SpawnModel.h"
+#include "world_control_msgs/SetModelPose.h"
+#include "world_control_msgs/DeleteModel.h"
 
 // Interface between RoboSherlock and UE4 to setup belief states 
 // with the UROSWorldControl Plugin provided by robcog-iai
 class BeliefStateCommunication
 {
+
+private:
+    ros::NodeHandle n;
+    ros::ServiceClient client;
 public:
-  BeliefStateCommunication();
+  BeliefStateCommunication(std::string domain="pie_rwc/spawn_model");
   ~BeliefStateCommunication();
 
   // TODO:
@@ -40,11 +47,10 @@ public:
   // urobovision_camera.
   // The full tag should therefore look like this:
   //  SemLog;id,urobovision_camera; 
-  bool SetCameraPose(geometry_msgs::Pose p);
-
-  bool DeleteObject();
-  bool SetObjectPose();
-  bool SpawnObject();
+  bool SetCameraPose(world_control_msgs::SetModelPose pose);
+  bool DeleteObject(world_control_msgs::DeleteModel object_id);
+  bool SetObjectPose(world_control_msgs::SetModelPose pose);
+  bool SpawnObject(world_control_msgs::SpawnModel model);
 };
 
 #endif // __BELIEF_STATE_COMMUNICATION_H

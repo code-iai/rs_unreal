@@ -3,7 +3,8 @@
   <name>rs_ue4beliefstate</name>
   <version>0.0.0</version>
   <description>The rs_ue4beliefstate package</description>
-  <maintainer email="fkenghag@uni-bremen.de">franklin</maintainer>
+  <maintainer email="fkenghag@uni-bremen.de">franklin Kenghagho</maintainer>
+   <maintainer email="pmania@cs.uni-bremen.de">Patrick Mania</maintainer>
   <license>3-clause BSD License</license>
 
   <buildtool_depend>catkin</buildtool_depend>

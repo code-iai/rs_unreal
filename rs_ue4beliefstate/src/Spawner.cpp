@@ -18,7 +18,7 @@ int main(int argc, char **argv)
   p.orientation.y = 0.0;
   p.orientation.z = 0.0;
   p.orientation.w = 1.0;
-  bsc.SetCameraPose(p);
+  //bsc.SetCameraPose(p);
 
   ros::ServiceClient client = n.serviceClient<world_control_msgs::SpawnModel>("pie_rwc/spawn_model");
   world_control_msgs::SpawnModel srv;
