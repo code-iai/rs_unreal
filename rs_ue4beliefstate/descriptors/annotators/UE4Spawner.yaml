@@ -1,7 +1,7 @@
 annotator:
   implementation: rs_UE4Spawner
 parameters:
-  test_param: 0.01
+  domain: pie_rwc
 capabilities:
   inputs: ['rs.scene.MergedHypothesis','rs.annotation.Pose',rs.annotation.SemanticColor,rs.annotation.Shape]
   outputs: {}
