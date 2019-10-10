@@ -51,6 +51,7 @@ public:
   bool DeleteObject(world_control_msgs::DeleteModel object_id);
   bool SetObjectPose(world_control_msgs::SetModelPose pose);
   bool SpawnObject(world_control_msgs::SpawnModel model);
+  void rsToUE4ModelMap(world_control_msgs::SpawnModel& model);
 };
 
 #endif // __BELIEF_STATE_COMMUNICATION_H

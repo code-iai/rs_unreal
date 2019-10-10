@@ -72,21 +72,25 @@ public:
     for (auto h:hyps)
     {
 
-      //get the pose, shape and color of each hypothesis
+      //get the pose, class, shape and color of each hypothesis
       std::vector<rs::PoseAnnotation>  poses;
+      std::vector<rs::Classification>  classes;
       std::vector<rs::Shape> shapes;
       std::vector<rs::SemanticColor> colors;
       h.annotations.filter(shapes);
       h.annotations.filter(colors);
       h.annotations.filter(poses);
-
+      h.annotations.filter(classes);
       //declare a message for spawning service
       world_control_msgs::SpawnModel srv;
 
-      //set the category of the object to spawn
-      srv.request.name = "JaMilch";
+      //set the rs category of the hypothesis to spawn
+      if(classes.size()>0)
+         srv.request.name=classes[0] .classname.get();
 
-      //set the ID of the object object to spawn or automatic generation of ID
+      //set the right category and material of the hypothesis to spawn
+      bf_com->rsToUE4ModelMap(srv);
+      //set the ID of the hypothesis to spawn or automatic generation of ID
       //srv.request.id=argv[2];
 
       //set the pose of the hypothesis
@@ -99,7 +103,7 @@ public:
       srv.request.pose.orientation.w = poses[0].world.get().rotation.get()[0];
 
       //set the mobility of the hypothesis
-      srv.request.physics_properties.mobility = 2; 
+      srv.request.physics_properties.mobility = 0;
 
       //spawn hypothesis
       bf_com->SpawnObject(srv);
