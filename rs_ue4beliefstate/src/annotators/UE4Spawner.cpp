@@ -68,6 +68,8 @@ public:
     rs::Scene scene = cas.getScene();
     std::vector<rs::ObjectHypothesis> hyps;
     scene.identifiables.filter(hyps);
+    //erase episodic memory to prepare update
+    bf_com->deleteEpisodicMemory();
     outInfo("Found "<<hyps.size()<<" object hypotheses");
     for (auto h:hyps)
     {
@@ -98,9 +100,9 @@ public:
       srv.request.pose.position.y = poses[0].world.get().translation.get()[1];
       srv.request.pose.position.z = poses[0].world.get().translation.get()[2];
       srv.request.pose.orientation.x = poses[0].world.get().rotation.get()[0];
-      srv.request.pose.orientation.y = poses[0].world.get().rotation.get()[0];
-      srv.request.pose.orientation.z = poses[0].world.get().rotation.get()[0];
-      srv.request.pose.orientation.w = poses[0].world.get().rotation.get()[0];
+      srv.request.pose.orientation.y = poses[0].world.get().rotation.get()[1];
+      srv.request.pose.orientation.z = poses[0].world.get().rotation.get()[2];
+      srv.request.pose.orientation.w = poses[0].world.get().rotation.get()[3];
 
       //set the mobility of the hypothesis
       srv.request.physics_properties.mobility = 0;

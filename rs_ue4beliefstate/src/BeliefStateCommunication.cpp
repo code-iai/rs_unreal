@@ -32,7 +32,10 @@ BeliefStateCommunication::BeliefStateCommunication(std::string domain)
 {
     outInfo("initializing BeliefStateCommunication ...");
     //parameter initialization
+    //client for model spawning
     client = n.serviceClient<world_control_msgs::SpawnModel>(domain+"/spawn_model");
+    //client for model deletion
+    delete_client = n.serviceClient<world_control_msgs::DeleteModel>(domain+"/delete_model");
 }
 
 
@@ -52,16 +55,19 @@ bool BeliefStateCommunication::SpawnObject(world_control_msgs::SpawnModel model)
     //check whether or not the spawning service server was reached
     if (!client.call(model))
     {
-     ROS_ERROR("Failed to call service client");
+     ROS_ERROR("Failed to call service spawn");
      return false;
     }
 
     //check the status of the respond from the server
     if (!model.response.success)
     {
-     ROS_ERROR("Service call returned false");
+     ROS_ERROR("Spawn Service call returned false");
      return false;
     }
+
+    //save hypothesis in episodic_memory
+    BeliefStateCommunication::updateEpisodicMemory(model.response.id);
 
     //print the ID of the spawned hypothesis
     ROS_INFO_STREAM("Object spawned with ID " << model.response.id);
@@ -164,4 +170,39 @@ void  BeliefStateCommunication::rsToUE4ModelMap(world_control_msgs::SpawnModel& 
                   }
               }
           }
+}
+
+bool BeliefStateCommunication::deleteEpisodicMemory()
+{
+ world_control_msgs::DeleteModel model;
+ for (int i=0;i<episodic_memory.size();i++)
+ {
+      model.request.id=episodic_memory.at(i);
+     //check whether or not the spawning service server was reached
+     if (!delete_client.call(model))
+     {
+      ROS_ERROR("Failed to call service delete");
+     }
+
+     //check the status of the respond from the server
+     if (!model.response.success)
+     {
+      ROS_ERROR("Service call returned false");
+     }
+
+     //print the ID of the spawned hypothesis
+     ROS_INFO_STREAM("Object delete with ID " << model.request.id);
+ }
+ //clear episodic memory
+  ROS_INFO_STREAM("\n finalizing deletion of episodic memory \n ");
+ episodic_memory.clear();
+ return true;
+}
+
+bool BeliefStateCommunication::updateEpisodicMemory(std::string object_id)
+{
+   ROS_INFO_STREAM("updating episodic memory ...");
+   episodic_memory.push_back(object_id);
+   ROS_INFO_STREAM("finalizing update of episodic memory ...");
+   return true;
 }
