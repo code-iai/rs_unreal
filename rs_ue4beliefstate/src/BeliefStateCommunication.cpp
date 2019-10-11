@@ -26,7 +26,8 @@
 #include <rs/utils/time.h>
 #include <rs/types/all_types.h>
 
-
+BeliefStateCommunication::BeliefStateCommunication(ros::NodeHandle &nh) : n(nh)
+{}
 
 BeliefStateCommunication::BeliefStateCommunication(std::string domain)
 {
@@ -206,3 +207,28 @@ bool BeliefStateCommunication::updateEpisodicMemory(std::string object_id)
    ROS_INFO_STREAM("finalizing update of episodic memory ...");
    return true;
 }
+
+
+bool BeliefStateCommunication::SetCameraPose(geometry_msgs::Pose p)
+{
+  ros::ServiceClient setposeclient = n.serviceClient<world_control_msgs::SetModelPose>("pie_rwc/set_model_pose");
+  world_control_msgs::SetModelPose setmodelposesrv;
+  setmodelposesrv.request.id = "urobovision_camera";
+  setmodelposesrv.request.pose = p;
+  ROS_INFO_STREAM("Send camera change request");
+  setposeclient.call(setmodelposesrv);
+
+  if (!setposeclient.call(setmodelposesrv))
+  {
+     ROS_ERROR("Failed to call service client while camera update");
+     return false;
+  }
+
+  if (!setmodelposesrv.response.success)
+  {
+     ROS_ERROR("Camera Update Service received non-success response during update");
+     return false;
+  }
+
+  return true;
+} 

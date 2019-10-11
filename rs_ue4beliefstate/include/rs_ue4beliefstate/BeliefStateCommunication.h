@@ -23,6 +23,7 @@
 #include "world_control_msgs/SpawnModel.h"
 #include "world_control_msgs/SetModelPose.h"
 #include "world_control_msgs/DeleteModel.h"
+#include <geometry_msgs/Pose.h>
 
 // Interface between RoboSherlock and UE4 to setup belief states 
 // with the UROSWorldControl Plugin provided by robcog-iai
@@ -36,6 +37,7 @@ private:
     std::vector<std::string> episodic_memory={};
 public:
   BeliefStateCommunication(std::string domain="pie_rwc/spawn_model");
+  BeliefStateCommunication(ros::NodeHandle &nh);
   ~BeliefStateCommunication();
 
   // TODO:
@@ -50,6 +52,7 @@ public:
   // The full tag should therefore look like this:
   //  SemLog;id,urobovision_camera; 
   bool SetCameraPose(world_control_msgs::SetModelPose pose);
+  bool SetCameraPose(geometry_msgs::Pose p);
   bool DeleteObject(world_control_msgs::DeleteModel object_id);
   bool SetObjectPose(world_control_msgs::SetModelPose pose);
   bool SpawnObject(world_control_msgs::SpawnModel model);

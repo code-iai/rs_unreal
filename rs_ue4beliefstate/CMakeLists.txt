@@ -48,9 +48,14 @@ find_additional_files()
 ################################################################################
 add_executable(Spawner src/Spawner.cpp)
 target_link_libraries(Spawner ${catkin_LIBRARIES} rs_beliefstatecomm)
+
+add_executable(CameraUpdater src/CameraUpdater.cpp)
+target_link_libraries(CameraUpdater ${catkin_LIBRARIES} rs_beliefstatecomm)
+
 add_library(rs_beliefstatecomm SHARED
   src/BeliefStateCommunication.cpp
 )
 target_link_libraries(rs_beliefstatecomm ${catkin_LIBRARIES})
+
 rs_add_library(rs_UE4Spawner src/annotators/UE4Spawner.cpp)
 target_link_libraries(rs_UE4Spawner ${catkin_LIBRARIES} rs_beliefstatecomm)

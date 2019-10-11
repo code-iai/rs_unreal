@@ -84,7 +84,7 @@ private:
   } dispMode;
 
 public:
-  GetRenderedView(): DrawingAnnotator(__func__), nh_("~"), it_(nh_),publishAsMarkers_(false), dispMode(ONLY_RENDER)
+  GetRenderedView(): DrawingAnnotator(__func__), nh_("~"), it_(nh_),publishAsMarkers_(false), dispMode(MIXED_WITH_CAMZERO)
   {
     // client_ = nh_.serviceClient<robosherlock_msgs::UpdateObjects>("/update_objects");
     // TODO make this a parameter so people can parametrize the camera differently, depending on the ip of the UE4 instance
