@@ -34,7 +34,7 @@ private:
     ros::NodeHandle n;
     ros::ServiceClient client;
     ros::ServiceClient delete_client;
-    std::vector<std::string> episodic_memory={};
+    std::map<std::string,std::string> episodic_memory={};
 public:
   BeliefStateCommunication(std::string domain="pie_rwc/spawn_model");
   BeliefStateCommunication(ros::NodeHandle &nh);
@@ -57,8 +57,9 @@ public:
   bool SetObjectPose(world_control_msgs::SetModelPose pose);
   bool SpawnObject(world_control_msgs::SpawnModel model);
   void rsToUE4ModelMap(world_control_msgs::SpawnModel& model);
-  bool deleteEpisodicMemory();
-  bool updateEpisodicMemory(std::string object_id);
+  bool deleteEpisodicMemory(std::string object_id, std::string object_name);
+  bool updateEpisodicMemory(std::string object_id, std::string object_name);
+  bool isToRotate(world_control_msgs::SpawnModel& model);
 };
 
 #endif // __BELIEF_STATE_COMMUNICATION_H
