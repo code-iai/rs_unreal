@@ -19,8 +19,8 @@ int main(int argc, char **argv)
     start_ = ros::WallTime::now();
     tf::StampedTransform transform;
     try{
-      //listener.lookupTransform("/head_mount_kinect_rgb_link", "/ue4_world",  
-      listener.lookupTransform("/ue4_world","/head_mount_kinect_rgb_link", 
+      //listener.lookupTransform("/head_mount_kinect_rgb_link", "/ue4_world",
+      listener.lookupTransform("/ue4_world","/head_mount_kinect_rgb_link",
                                ros::Time(0), transform);
       auto t = transform.getOrigin();
       std::cout << t.getX() << " " << t.getY() << " " << t.getZ() << std::endl;
@@ -47,7 +47,7 @@ int main(int argc, char **argv)
     }
     catch (tf::TransformException ex){
       ROS_ERROR("%s",ex.what());
-      ros::Duration(1.0).sleep();
+      //ros::Duration(1.0).sleep();
       continue;
     }
 
@@ -57,7 +57,7 @@ int main(int argc, char **argv)
     // print results
     double execution_time = (end_ - start_).toNSec() * 1e-6;
     ROS_INFO_STREAM("Exectution time (ms): " << execution_time);
-    ros::Duration(1.5).sleep();
+    //ros::Duration(1.5).sleep();
   }
 
   return 0;
