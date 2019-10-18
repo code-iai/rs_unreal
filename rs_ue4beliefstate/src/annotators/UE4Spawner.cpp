@@ -1,3 +1,5 @@
+//Standard C
+#include <math.h>
 //UIMA
 #include <uima/api.hpp>
 //PCL
@@ -36,6 +38,7 @@ private:
   BeliefStateCommunication* bf_com;
   tf::TransformListener listener;
   ros::WallTime start_, end_;
+  tf::StampedTransform transform;
 
 
 public:
@@ -63,77 +66,115 @@ public:
 
   TyErrorId process(CAS &tcas, ResultSpecification const &res_spec)
   {
-    outInfo("reading the belief state ...");
-   
-    rs::StopWatch clock;
-    rs::SceneCas cas(tcas);
 
-    rs::Scene scene = cas.getScene();
-    std::vector<rs::ObjectHypothesis> hyps;
-    scene.identifiables.filter(hyps);
-    //erase episodic memory to prepare update
-    bf_com->deleteEpisodicMemory();
-    outInfo("Found "<<hyps.size()<<" object hypotheses");
-    for (auto h:hyps)
-    {
+    outInfo("posing the camera in unreal");
+   try{
+       /* auto t = transform.getOrigin();
+        std::cout << t.getX() << " " << t.getY() << " " << t.getZ() << std::endl;
+        tf::Quaternion q(
+          transform.getRotation().getX(),
+          transform.getRotation().getY(),
+          transform.getRotation().getZ(),
+          transform.getRotation().getW());
+        tf::Matrix3x3 m(q);
+        double roll, pitch, yaw;
+        m.getRPY(roll, pitch, yaw);
+        std::cout << roll << " " << pitch << " " << yaw << std::endl;
 
-      //get the pose, class, shape and color of each hypothesis
-      std::vector<rs::PoseAnnotation>  poses;
-      std::vector<rs::Classification>  classes;
-      std::vector<rs::Shape> shapes;
-      std::vector<rs::SemanticColor> colors;
-      h.annotations.filter(shapes);
-      h.annotations.filter(colors);
-      h.annotations.filter(poses);
-      h.annotations.filter(classes);
-      //declare a message for spawning service
-      world_control_msgs::SpawnModel srv;
+        geometry_msgs::Pose p;
+        p.position.x = t.getX();
+        p.position.y = t.getY();
+        p.position.z = t.getZ();
+        p.orientation.x = transform.getRotation().getX();
+        p.orientation.y = transform.getRotation().getY();
+        p.orientation.z = transform.getRotation().getZ();
+        p.orientation.w = transform.getRotation().getW();
 
-      //set the rs category of the hypothesis to spawn
-      if(classes.size()>0)
-         srv.request.name=classes[0] .classname.get();
+        bf_com->SetCameraPose(p);
+        */
 
-      //set the right category and material of the hypothesis to spawn
-      bf_com->rsToUE4ModelMap(srv);
-      //set the ID of the hypothesis to spawn or automatic generation of ID
-      //srv.request.id=argv[2];
-      tf::StampedTransform transform;
-      //transform from kinect to ue4
-      listener.lookupTransform("/ue4_world","/head_mount_kinect_rgb_link", 
-                               ros::Time(0), transform);
-      geometry_msgs::PoseStamped p,q;
-      p.header.frame_id="/head_mount_kinect_rgb_optical_frame";
-      p.pose.position.x = poses[0].camera.get().translation.get()[0];
-      p.pose.position.y = poses[0].camera.get().translation.get()[1];
-      p.pose.position.z = poses[0].camera.get().translation.get()[2];
-      p.pose.orientation.x = poses[0].camera.get().rotation.get()[0];
-      p.pose.orientation.y = poses[0].camera.get().rotation.get()[1];
-      p.pose.orientation.z = poses[0].camera.get().rotation.get()[2];
-      p.pose.orientation.w = poses[0].camera.get().rotation.get()[3];
-      ROS_ERROR("Hello");
-      try{
-        listener.transformPose("/ue4_world",p,q);
-      }catch (tf::TransformException ex){
-        ROS_ERROR("%s",ex.what());
-      }
-      ROS_ERROR("Hallo");
-      //set the pose of the hypothesis
-      srv.request.pose.position.x = q.pose.position.x;
-      srv.request.pose.position.y = q.pose.position.y;
-      srv.request.pose.position.z = q.pose.position.z;
-      srv.request.pose.orientation.x = q.pose.orientation.x;
-      srv.request.pose.orientation.y = q.pose.orientation.y;
-      srv.request.pose.orientation.z = q.pose.orientation.z;
-      srv.request.pose.orientation.w = q.pose.orientation.w;
+        outInfo("reading the belief state ...");
 
-      //set the mobility of the hypothesis
-      srv.request.physics_properties.mobility = 0;
+        rs::StopWatch clock;
+        rs::SceneCas cas(tcas);
+        rs::Scene scene = cas.getScene();
+        long ts_sec=scene.timestamp()/1000000000;
+        long ts_nsec=scene.timestamp()%1000000000;
+        outInfo("TimeStamp: ******* "<< ts_sec<<" "<<ts_nsec<<" "<<scene.timestamp());
+        //look for the transfrom real camera to unreal
+        listener.lookupTransform("/ue4_world","/map",
+                                 ros::Time(ts_sec,ts_nsec), transform);
 
-      //spawn hypothesis
-      bf_com->SpawnObject(srv);
+        std::vector<rs::Object> hyps;
+        std::vector<rs::MergedHypothesis> mHyps;
+        cas.get(VIEW_OBJECTS, hyps);
+        scene.identifiables.filter(mHyps);
+        outInfo("Found "<<hyps.size()<<" object hypotheses");
+        for (auto h:hyps)
+        {
+         try{
+          if(((h.inView.get()) && h.wasSeen.get()) || !h.inView.get() || h.disappeared.get())
+              continue;
 
+          //get the pose, class, shape and color of each hypothesis
+          std::vector<rs::PoseAnnotation>  poses;
+          std::vector<rs::Classification>  classes;
+          std::vector<rs::Shape> shapes;
+          std::vector<rs::SemanticColor> colors;
+          std::vector<rs::Object> object_ids;
+          h.annotations.filter(shapes);
+          h.annotations.filter(colors);
+          h.annotations.filter(poses);
+          h.annotations.filter(classes);
+          //declare a message for spawning service
+          world_control_msgs::SpawnModel srv;
+          //set the rs category of the hypothesis to spawn
+          if(classes.size()>0)
+             srv.request.name=classes[0].classname.get();
+          if(!(bf_com->deleteEpisodicMemory(h.id.get(),srv.request.name)))
+              continue;
+          outInfo("OBJ ID ************: "<<h.id.get());
+          //set the right category and material of the hypothesis to spawn
+          bf_com->rsToUE4ModelMap(srv);
+          //set the ID of the hypothesis to spawn or automatic generation of ID
+          srv.request.id=h.id.get();
+          geometry_msgs::PoseStamped p,q;
+          p.header.stamp=ros::Time(ts_sec,ts_nsec);
+          p.header.frame_id="/head_mount_kinect_rgb_optical_frame";
+          p.pose.position.x = poses[0].camera.get().translation.get()[0];
+          p.pose.position.y = poses[0].camera.get().translation.get()[1];
+          p.pose.position.z = poses[0].camera.get().translation.get()[2];
+          p.pose.orientation.x = poses[0].camera.get().rotation.get()[0];
+          p.pose.orientation.y = poses[0].camera.get().rotation.get()[1];
+          p.pose.orientation.z = poses[0].camera.get().rotation.get()[2];
+          p.pose.orientation.w = poses[0].camera.get().rotation.get()[3];
+          //transform to ue4_world
+          listener.transformPose("/ue4_world",p,q);
+          //set the pose of the hypothesis
+          tf::Quaternion r(q.pose.orientation.x,q.pose.orientation.y,q.pose.orientation.z,q.pose.orientation.w);
+          if(bf_com->isToRotate(srv))
+            r.setRotation(r.getAxis(),r.getAngle()-M_PI/2.0);
+          else
+            r.setRotation(r.getAxis(),r.getAngle());
+          srv.request.pose.position.x = q.pose.position.x;
+          srv.request.pose.position.y = q.pose.position.y;
+          srv.request.pose.position.z = q.pose.position.z;
+          srv.request.pose.orientation.x = r.getX();
+          srv.request.pose.orientation.y = r.getY();
+          srv.request.pose.orientation.z = r.getZ();
+          srv.request.pose.orientation.w = r.getW();
+          //set the mobility of the hypothesis
+          srv.request.physics_properties.mobility = 0;
+          //spawn hypothesis
+          bf_com->SpawnObject(srv);
+        }catch (Exception ex){
+          ROS_ERROR("%s",ex.what());
+        }
 
     }
+   }catch (Exception ex){
+            ROS_ERROR("%s",ex.what());
+   }
  
   }
 };
