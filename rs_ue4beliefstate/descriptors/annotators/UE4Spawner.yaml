@@ -3,5 +3,5 @@ annotator:
 parameters:
   domain: pie_rwc
 capabilities:
-  inputs: ['rs.scene.MergedHypothesis','rs.annotation.Pose',rs.annotation.SemanticColor,rs.annotation.Shape]
+  inputs: ['rs.scene.MergedHypothesis','rs.annotation.Pose','rs.annotation.SemanticColor','rs.annotation.Shape','rs.annotation.ColorHistogram','rs.scene.Object']
   outputs: {}
