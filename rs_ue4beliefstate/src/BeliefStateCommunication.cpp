@@ -68,7 +68,7 @@ bool BeliefStateCommunication::SpawnObject(world_control_msgs::SpawnModel model)
     }
 
     //save hypothesis in episodic_memory
-    BeliefStateCommunication::updateEpisodicMemory(model.response.id);
+    BeliefStateCommunication::updateEpisodicMemory(model.response.id,model.request.name);
 
     //print the ID of the spawned hypothesis
     ROS_INFO_STREAM("Object spawned with ID " << model.response.id);
@@ -86,6 +86,15 @@ bool  BeliefStateCommunication::SetObjectPose(world_control_msgs::SetModelPose p
     std::cout << "set object pose" << std::endl;
     return true;
 }
+
+bool  BeliefStateCommunication::isToRotate(world_control_msgs::SpawnModel& model){
+     if(model.request.name=="KelloggsCornFlakes")
+         return true;
+     else
+         return false;
+
+}
+
 void  BeliefStateCommunication::rsToUE4ModelMap(world_control_msgs::SpawnModel& model)
 {
           if(model.request.name=="KelloggsCornFlakes"){
@@ -149,15 +158,19 @@ void  BeliefStateCommunication::rsToUE4ModelMap(world_control_msgs::SpawnModel& 
                                                           model.request.material_paths={"/Models/IAIKitchen/Items/CoffeeElBryg"};
                                                       }else{
                                                           if(model.request.name=="SiggBottle"){
-                                                              model.request.name= "Mondamin";
-                                                              model.request.material_names={"Mondamin"};
-                                                              model.request.material_paths={"/Models/IAIKitchen/Items/Mondamin"};
+                                                              model.request.name= "ReineButterMilch";
+                                                              model.request.material_names={"Plastic_White"};
+                                                              model.request.material_paths={"/Items/Materials"};
                                                           }else{
-
+                                                              if(model.request.name=="CupEcoOrange"){
+                                                                  model.request.name= "Cup";
+                                                                  model.request.material_names={"Plastic_Brown"};
+                                                                  model.request.material_paths={"/Items/Materials"};
+                                                              }else{
                                                                   model.request.name= "Cappuccino";
                                                                   model.request.material_names={"Cappuccino"};
                                                                   model.request.material_paths={"/Models/IAIKitchen/Items/Cappuccino"};
-
+                                                            }
                                                           }
                                                       }
                                                   }
@@ -173,37 +186,41 @@ void  BeliefStateCommunication::rsToUE4ModelMap(world_control_msgs::SpawnModel& 
           }
 }
 
-bool BeliefStateCommunication::deleteEpisodicMemory()
+bool BeliefStateCommunication::deleteEpisodicMemory(std::string object_id, std::string object_name)
 {
- world_control_msgs::DeleteModel model;
- for (int i=0;i<episodic_memory.size();i++)
- {
-      model.request.id=episodic_memory.at(i);
-     //check whether or not the spawning service server was reached
-     if (!delete_client.call(model))
-     {
-      ROS_ERROR("Failed to call service delete");
-     }
+  world_control_msgs::DeleteModel model;
+  std::map<std::string,std::string>::iterator it;
+  it=episodic_memory.find(object_id);
+  if(it==episodic_memory.end())
+      return true;
+  if(it->second==object_name)
+      return false;
+  model.request.id=object_id;
+  //check whether or not the spawning service server was reached
+  if (!delete_client.call(model))
+  {
+     ROS_ERROR("Failed to call service delete");
+     return false;
 
-     //check the status of the respond from the server
-     if (!model.response.success)
-     {
-      ROS_ERROR("Service call returned false");
-     }
-
-     //print the ID of the spawned hypothesis
-     ROS_INFO_STREAM("Object delete with ID " << model.request.id);
- }
+  }
+  //check the status of the respond from the server
+  if (!model.response.success)
+  {
+     ROS_ERROR("Service call returned false");
+     return false;
+  }
+  //print the ID of the spawned hypothesis
+  ROS_INFO_STREAM("Object delete with ID " << model.request.id);
  //clear episodic memory
+  episodic_memory.erase(object_id);
   ROS_INFO_STREAM("\n finalizing deletion of episodic memory \n ");
- episodic_memory.clear();
- return true;
+  return true;
 }
 
-bool BeliefStateCommunication::updateEpisodicMemory(std::string object_id)
+bool BeliefStateCommunication::updateEpisodicMemory(std::string object_id, std::string object_name)
 {
    ROS_INFO_STREAM("updating episodic memory ...");
-   episodic_memory.push_back(object_id);
+   episodic_memory.insert(std::pair<std::string,std::string>(object_id,object_name));
    ROS_INFO_STREAM("finalizing update of episodic memory ...");
    return true;
 }
