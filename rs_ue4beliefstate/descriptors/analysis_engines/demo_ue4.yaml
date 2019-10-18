@@ -3,15 +3,16 @@ ae:
 fixedflow:
   - CollectionReader
   - ImagePreprocessor
+  - RegionFilter
+  - NormalEstimator
   - PlaneAnnotator
-  - PointCloudFilter
   - PointCloudClusterExtractor
-  - ImageSegmentationAnnotator
   - ClusterMerger
   - Cluster3DGeometryAnnotator
   - ClusterColorHistogramCalculator
   - CaffeAnnotator
   - KnnAnnotator
+  - ObjectIdentityResolution
   - UE4Spawner
 CollectionReader:
   camera_config_files: ['config_kinect_robot_ue4.ini']
