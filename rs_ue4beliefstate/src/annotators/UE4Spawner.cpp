@@ -113,8 +113,6 @@ public:
         for (auto h:hyps)
         {
          try{
-          if(((h.inView.get()) && h.wasSeen.get()) || !h.inView.get() || h.disappeared.get())
-              continue;
 
           //get the pose, class, shape and color of each hypothesis
           std::vector<rs::PoseAnnotation>  poses;
@@ -122,16 +120,30 @@ public:
           std::vector<rs::Shape> shapes;
           std::vector<rs::SemanticColor> colors;
           std::vector<rs::Object> object_ids;
+          float confidence=0.0;
           h.annotations.filter(shapes);
           h.annotations.filter(colors);
           h.annotations.filter(poses);
           h.annotations.filter(classes);
           //declare a message for spawning service
           world_control_msgs::SpawnModel srv;
+
+          //if(h.inView.get() && (h.lastSeen.get()<=scene.timestamp()-5000000000))
+          //    bf_com->deleteEpisodicMemory(h.id.get(),"",100000);
+          if(((h.inView.get()) && h.wasSeen.get()) || !h.inView.get() || h.disappeared.get())
+              continue;
+
           //set the rs category of the hypothesis to spawn
           if(classes.size()>0)
+          {
+             //name
              srv.request.name=classes[0].classname.get();
-          if(!(bf_com->deleteEpisodicMemory(h.id.get(),srv.request.name)))
+             //confidence
+             confidence=classes[0].confidences.get()[0].score.get();
+             outInfo("OBJ ID SCORE ++++++++++++: "<<confidence);
+
+          }
+          if(!(bf_com->deleteEpisodicMemory(h.id.get(),srv.request.name,confidence)))
               continue;
           outInfo("OBJ ID ************: "<<h.id.get());
           //set the right category and material of the hypothesis to spawn
@@ -166,7 +178,7 @@ public:
           //set the mobility of the hypothesis
           srv.request.physics_properties.mobility = 0;
           //spawn hypothesis
-          bf_com->SpawnObject(srv);
+          bf_com->SpawnObject(srv,confidence);
         }catch (Exception ex){
           ROS_ERROR("%s",ex.what());
         }

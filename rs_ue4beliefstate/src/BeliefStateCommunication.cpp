@@ -50,7 +50,7 @@ bool BeliefStateCommunication::SetCameraPose(world_control_msgs::SetModelPose po
   return true;
 } 
 
-bool BeliefStateCommunication::SpawnObject(world_control_msgs::SpawnModel model)
+bool BeliefStateCommunication::SpawnObject(world_control_msgs::SpawnModel model, float confidence)
 {
 
     //check whether or not the spawning service server was reached
@@ -68,7 +68,7 @@ bool BeliefStateCommunication::SpawnObject(world_control_msgs::SpawnModel model)
     }
 
     //save hypothesis in episodic_memory
-    BeliefStateCommunication::updateEpisodicMemory(model.response.id,model.request.name);
+    BeliefStateCommunication::updateEpisodicMemory(model.response.id,model.request.name,confidence);
 
     //print the ID of the spawned hypothesis
     ROS_INFO_STREAM("Object spawned with ID " << model.response.id);
@@ -186,15 +186,24 @@ void  BeliefStateCommunication::rsToUE4ModelMap(world_control_msgs::SpawnModel& 
           }
 }
 
-bool BeliefStateCommunication::deleteEpisodicMemory(std::string object_id, std::string object_name)
+bool BeliefStateCommunication::deleteEpisodicMemory(std::string object_id, std::string object_name, float confidence)
 {
   world_control_msgs::DeleteModel model;
-  std::map<std::string,std::string>::iterator it;
+  std::map<std::string,std::pair<std::string,float>>::iterator it;
   it=episodic_memory.find(object_id);
   if(it==episodic_memory.end())
       return true;
-  if(it->second==object_name)
-      return false;
+  if(std::get<0>(it->second)==object_name)
+  {   //improve understanding of an object
+      if(std::get<1>(it->second)<confidence){
+          episodic_memory.erase(object_id);
+          BeliefStateCommunication::updateEpisodicMemory(object_id,object_name,confidence);
+      }
+     return false;
+  }
+  //make the belief state more stable
+  if(confidence<0.6 || std::get<1>(it->second)>confidence+0.1)
+     return false;
   model.request.id=object_id;
   //check whether or not the spawning service server was reached
   if (!delete_client.call(model))
@@ -217,10 +226,10 @@ bool BeliefStateCommunication::deleteEpisodicMemory(std::string object_id, std::
   return true;
 }
 
-bool BeliefStateCommunication::updateEpisodicMemory(std::string object_id, std::string object_name)
+bool BeliefStateCommunication::updateEpisodicMemory(std::string object_id, std::string object_name, float confidence)
 {
    ROS_INFO_STREAM("updating episodic memory ...");
-   episodic_memory.insert(std::pair<std::string,std::string>(object_id,object_name));
+   episodic_memory.insert(std::pair<std::string,std::pair<std::string,float>>(object_id,std::pair<std::string,float>(object_name,confidence)));
    ROS_INFO_STREAM("finalizing update of episodic memory ...");
    return true;
 }
