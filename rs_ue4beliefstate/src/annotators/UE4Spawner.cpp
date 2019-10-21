@@ -128,8 +128,8 @@ public:
           //declare a message for spawning service
           world_control_msgs::SpawnModel srv;
 
-          //if(h.inView.get() && (h.lastSeen.get()<=scene.timestamp()-5000000000))
-          //    bf_com->deleteEpisodicMemory(h.id.get(),"",100000);
+          if(h.inView.get() && (h.disappeared.get()))
+              bf_com->deleteEpisodicMemory(h.id.get(),"",100000);
           if(((h.inView.get()) && h.wasSeen.get()) || !h.inView.get() || h.disappeared.get())
               continue;
 
