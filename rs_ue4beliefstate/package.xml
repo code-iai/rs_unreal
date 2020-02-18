@@ -12,11 +12,13 @@
   <build_depend>world_control_msgs</build_depend>
   <build_depend>geometry_msgs</build_depend>
   <build_depend>roscpp</build_depend>
+  <build_depend>tf2_msgs</build_depend>
 
   <build_export_depend>robosherlock</build_export_depend>
   <exec_depend>robosherlock</exec_depend>
   <exec_depend>world_control_msgs</exec_depend>
   <exec_depend>geometry_msgs</exec_depend>
   <exec_depend>roscpp</exec_depend>
+  <exec_depend>tf2_msgs</exec_depend>
 
 </package>

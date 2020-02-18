@@ -52,6 +52,9 @@ target_link_libraries(Spawner ${catkin_LIBRARIES} rs_beliefstatecomm)
 add_executable(CameraUpdater src/CameraUpdater.cpp)
 target_link_libraries(CameraUpdater ${catkin_LIBRARIES} rs_beliefstatecomm)
 
+add_executable(PR2BaseUpdater src/PR2BaseUpdater.cpp)
+target_link_libraries(PR2BaseUpdater ${catkin_LIBRARIES})
+
 add_library(rs_beliefstatecomm SHARED
   src/BeliefStateCommunication.cpp
 )
@@ -59,3 +62,5 @@ target_link_libraries(rs_beliefstatecomm ${catkin_LIBRARIES})
 
 rs_add_library(rs_UE4Spawner src/annotators/UE4Spawner.cpp)
 target_link_libraries(rs_UE4Spawner ${catkin_LIBRARIES} rs_beliefstatecomm)
+rs_add_library(rs_GetBeliefStateData src/GetBeliefStateData.cpp)
+target_link_libraries(rs_GetBeliefStateData ${catkin_LIBRARIES})

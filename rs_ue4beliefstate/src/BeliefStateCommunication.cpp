@@ -68,7 +68,7 @@ bool BeliefStateCommunication::SpawnObject(world_control_msgs::SpawnModel model,
     }
 
     //save hypothesis in episodic_memory
-    BeliefStateCommunication::updateEpisodicMemory(model.response.id,model.request.name,confidence);
+    BeliefStateCommunication::updateEpisodicMemory(model.response.id,model.request.name,confidence,0);
 
     //print the ID of the spawned hypothesis
     ROS_INFO_STREAM("Object spawned with ID " << model.response.id);
@@ -97,6 +97,12 @@ bool  BeliefStateCommunication::isToRotate(world_control_msgs::SpawnModel& model
 
 void  BeliefStateCommunication::rsToUE4ModelMap(world_control_msgs::SpawnModel& model)
 {
+          if(model.request.name=="RedPlasticKnife")
+              model.request.name="RedMetalPlateWhiteSpeckles";
+
+         if(model.request.name=="BluePlasticKnife")
+              model.request.name="BlueMetalPlateWhiteSpeckles";
+
           if(model.request.name=="KelloggsCornFlakes"){
               model.request.name= "KelloggsCornFlakes";
               model.request.material_names={"KelloggsCornFlakes"};
@@ -123,14 +129,14 @@ void  BeliefStateCommunication::rsToUE4ModelMap(world_control_msgs::SpawnModel& 
                               model.request.material_paths={"/Models/IAIKitchen/Items/PfannerPfirschIcetea"};
                           }else{
                               if(model.request.name=="RedPlasticKnife"){
-                                  model.request.name= "ButterKnife";
+                                  model.request.name= "Messer";
                                   model.request.material_names={"Plastic_Red"};
                                   model.request.material_paths={"/Items/Materials"};
                               }else{
                                   if(model.request.name=="BluePlasticKnife"){
-                                      model.request.name= "ButterKnife";
-                                      model.request.material_names={"Plastic_Blue"};
-                                      model.request.material_paths={"/Items/Materials"};
+                                      model.request.name= "Messer";
+                                      model.request.material_names={"Material_001"};
+                                      model.request.material_paths={"/Items/Messer"};
                                   }else{
                                       if(model.request.name=="BluePlasticFork"){
                                           model.request.name= "DessertFork";
@@ -138,13 +144,13 @@ void  BeliefStateCommunication::rsToUE4ModelMap(world_control_msgs::SpawnModel& 
                                           model.request.material_paths={"/Items/Materials"};
                                       }else{
                                           if(model.request.name=="RedMetalPlateWhiteSpeckles"){
-                                              model.request.name= "ClassicPlate18cm";
+                                              model.request.name= "RedSpottedPlate1";
                                               model.request.material_names={"Ceramic_Red"};
                                               model.request.material_paths={"/Items/Materials"};
                                           }else{
                                               if(model.request.name=="BlueMetalPlateWhiteSpeckles"){
-                                                  model.request.name= "ClassicPlate18cm";
-                                                  model.request.material_names={"Ceramic_Blue"};
+                                                  model.request.name= "BlueSpottedPlate_1";
+                                                  model.request.material_names={"BlueSpottedPlate"};
                                                   model.request.material_paths={"/Items/Materials"};
                                               }else{
                                                   if(model.request.name=="SojaMilch"){
@@ -158,14 +164,14 @@ void  BeliefStateCommunication::rsToUE4ModelMap(world_control_msgs::SpawnModel& 
                                                           model.request.material_paths={"/Models/IAIKitchen/Items/CoffeeElBryg"};
                                                       }else{
                                                           if(model.request.name=="SiggBottle"){
-                                                              model.request.name= "ReineButterMilch";
-                                                              model.request.material_names={"Plastic_White"};
-                                                              model.request.material_paths={"/Items/Materials"};
+                                                              model.request.name= "SIGG_Flasche";
+                                                              model.request.material_names={"Material_0"};
+                                                              model.request.material_paths={"/Items/SIGG_Flasche"};
                                                           }else{
                                                               if(model.request.name=="CupEcoOrange"){
-                                                                  model.request.name= "Cup";
-                                                                  model.request.material_names={"Plastic_Brown"};
-                                                                  model.request.material_paths={"/Items/Materials"};
+                                                                  model.request.name= "Tigercup";
+                                                                  model.request.material_names={"Material_0"};
+                                                                  model.request.material_paths={"/Items/TigerCup"};
                                                               }else{
                                                                   model.request.name= "Cappuccino";
                                                                   model.request.material_names={"Cappuccino"};
@@ -186,18 +192,28 @@ void  BeliefStateCommunication::rsToUE4ModelMap(world_control_msgs::SpawnModel& 
           }
 }
 
-bool BeliefStateCommunication::deleteEpisodicMemory(std::string object_id, std::string object_name, float confidence)
+bool BeliefStateCommunication::deleteEpisodicMemory(std::string object_id, std::string object_name, float confidence, int disappeared)
 {
   world_control_msgs::DeleteModel model;
-  std::map<std::string,std::pair<std::string,float>>::iterator it;
+  std::map<std::string,std::tuple<std::string,float,int>>::iterator it;
   it=episodic_memory.find(object_id);
   if(it==episodic_memory.end())
       return true;
+  int disap=std::get<2>(it->second);
+  if(disappeared==1){
+     disap++;
+     if(disap>1){
+            object_name="";
+            confidence=10000;
+       }else
+          return false;
+  }else
+    disap=0;
   if(std::get<0>(it->second)==object_name)
   {   //improve understanding of an object
       if(std::get<1>(it->second)<confidence){
           episodic_memory.erase(object_id);
-          BeliefStateCommunication::updateEpisodicMemory(object_id,object_name,confidence);
+          BeliefStateCommunication::updateEpisodicMemory(object_id,object_name,confidence,disap);
       }
      return false;
   }
@@ -226,10 +242,10 @@ bool BeliefStateCommunication::deleteEpisodicMemory(std::string object_id, std::
   return true;
 }
 
-bool BeliefStateCommunication::updateEpisodicMemory(std::string object_id, std::string object_name, float confidence)
+bool BeliefStateCommunication::updateEpisodicMemory(std::string object_id, std::string object_name, float confidence, int disappeared)
 {
    ROS_INFO_STREAM("updating episodic memory ...");
-   episodic_memory.insert(std::pair<std::string,std::pair<std::string,float>>(object_id,std::pair<std::string,float>(object_name,confidence)));
+   episodic_memory.insert(std::pair<std::string,std::tuple<std::string,float,int>>(object_id,std::tuple<std::string,float,int>(object_name,confidence,disappeared)));
    ROS_INFO_STREAM("finalizing update of episodic memory ...");
    return true;
 }

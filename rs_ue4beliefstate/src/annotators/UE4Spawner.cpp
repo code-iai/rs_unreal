@@ -129,8 +129,8 @@ public:
           world_control_msgs::SpawnModel srv;
 
           if(h.inView.get() && (h.disappeared.get()))
-              bf_com->deleteEpisodicMemory(h.id.get(),"",100000);
-          if(((h.inView.get()) && h.wasSeen.get()) || !h.inView.get() || h.disappeared.get())
+              bf_com->deleteEpisodicMemory(h.id.get(),"",100000,1);
+          if( !h.inView.get() || h.disappeared.get())
               continue;
 
           //set the rs category of the hypothesis to spawn
@@ -142,8 +142,11 @@ public:
              confidence=classes[0].confidences.get()[0].score.get();
              outInfo("OBJ ID SCORE ++++++++++++: "<<confidence);
 
+          }else{
+            bf_com->deleteEpisodicMemory(h.id.get(),"",100000,1);
+            continue;
           }
-          if(!(bf_com->deleteEpisodicMemory(h.id.get(),srv.request.name,confidence)))
+          if(!(bf_com->deleteEpisodicMemory(h.id.get(),srv.request.name,confidence,0)))
               continue;
           outInfo("OBJ ID ************: "<<h.id.get());
           //set the right category and material of the hypothesis to spawn
