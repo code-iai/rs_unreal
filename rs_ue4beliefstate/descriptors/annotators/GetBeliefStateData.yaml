@@ -1,0 +1,8 @@
+annotator:
+  implementation: rs_GetBeliefStateData
+capabilities:
+  inputs: {}
+  outputs: {}
+parameters:
+  camera_id: 1
+  use_hd_images: true

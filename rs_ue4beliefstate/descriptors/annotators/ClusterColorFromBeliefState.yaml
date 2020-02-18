@@ -1,0 +1,15 @@
+annotator:
+  implementation: rs_ClusterColorFromBeliefState
+capabilities:
+  inputs: {}
+  outputs: {}
+parameters:
+  camera_id: 1
+  use_hd_images: true
+  semantic_label: true
+  histogramCols: 16
+  histogramRows: 16
+  maxValueBlack: 60
+  minSaturationColor: 60
+  minValueColor: 60
+  minValueWhite: 120

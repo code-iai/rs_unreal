@@ -1,0 +1,22 @@
+ae:
+  name: demo_ue4_and_kinect
+fixedflow:
+  - CollectionReader
+  - ImagePreprocessor
+  - RegionFilter
+  - NormalEstimator
+  - PlaneAnnotator
+  - PointCloudClusterExtractor
+  - ClusterMerger
+  - Cluster3DGeometryAnnotator
+  - ClusterColorHistogramCalculator
+  - CaffeAnnotator
+  - KnnAnnotator
+  - ObjectIdentityResolution
+  - GetBeliefStateData
+  - ClusterColorFromBeliefState
+  - UE4Spawner
+CollectionReader:
+  camera_config_files: ['config_kinect_robot_ue4.ini','config_unreal_vision_ue4.ini']
+RegionFilter:
+    enable_change_detection: false
