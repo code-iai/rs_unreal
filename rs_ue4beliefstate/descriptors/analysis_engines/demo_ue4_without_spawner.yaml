@@ -1,5 +1,5 @@
 ae:
-  name: demo_ue4_and_kinect
+  name: demo_ue4_without_spawner
 fixedflow:
   - CollectionReader
   - ImagePreprocessor
@@ -13,10 +13,7 @@ fixedflow:
   - CaffeAnnotator
   - KnnAnnotator
   - ObjectIdentityResolution
-  - GetBeliefStateData
-  - ClusterColorFromBeliefState
-  - UE4Spawner
 CollectionReader:
-  camera_config_files: ['config_kinect_robot_ue4.ini','config_unreal_vision_ue4.ini']
+  camera_config_files: ['config_kinect_robot_ue4.ini']
 RegionFilter:
-    enable_change_detection: true
+    enable_change_detection: false

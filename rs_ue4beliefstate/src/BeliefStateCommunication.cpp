@@ -97,6 +97,34 @@ bool  BeliefStateCommunication::isToRotate(world_control_msgs::SpawnModel& model
 
 void  BeliefStateCommunication::rsToUE4ModelMap(world_control_msgs::SpawnModel& model)
 {
+  if(model.request.name=="KnusperSchokoKeks"){
+    model.request.name= "KnusperSchokoKeks";
+    model.request.material_names={"KnusperSchoko"};
+    model.request.material_paths={"/Models/IAIKitchen/Items/KnusperSchokoKeks"};
+    return;
+  }
+
+  if(model.request.name=="PfannerGruneIcetea"){
+    model.request.name= "PfannerGruneIcetea";
+    model.request.material_names={"PfannerGruneIcetea"};
+    model.request.material_paths={"/Models/IAIKitchen/Items/PfannerGruneIcetea"};
+    return;
+  }
+
+  if(model.request.name=="SpitzenReis"){
+    model.request.name= "SpitzenReis";
+    model.request.material_names={"SpitzenReis"};
+    model.request.material_paths={"/Models/IAIKitchen/Items/SpitzenReis"};
+    return;
+  }
+
+  if(model.request.name=="KoellnMuesliKnusperHonigNuss"){
+    model.request.name= "KoellnMuesliKnusperHonigNuss";
+    model.request.material_names={"KoellnMuesliKnusperHonigNuss"};
+    model.request.material_paths={"/Models/IAIKitchen/Items/KoellnMuesliKnusperHonigNuss"};
+    return;
+  }
+
           if(model.request.name=="RedPlasticKnife")
               model.request.name="RedMetalPlateWhiteSpeckles";
 
@@ -173,7 +201,7 @@ void  BeliefStateCommunication::rsToUE4ModelMap(world_control_msgs::SpawnModel& 
                                                                   model.request.material_names={"Material_0"};
                                                                   model.request.material_paths={"/Items/TigerCup"};
                                                               }else{
-                                                                  model.request.name= "Cappuccino";
+                                                                  model.request.name= "ComdoCappuccinoClassico";
                                                                   model.request.material_names={"Cappuccino"};
                                                                   model.request.material_paths={"/Models/IAIKitchen/Items/Cappuccino"};
                                                             }

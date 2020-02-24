@@ -25,6 +25,7 @@
 #include <rs/scene_cas.h>
 #include <rs/utils/time.h>
 #include <rs/types/all_types.h>
+#include <rs/utils/exception.h>
 //RS_UE$BELIEFSTATE
 #include "rs_ue4beliefstate/UE4Spawner.h"
   
@@ -64,46 +65,96 @@ public:
     return UIMA_ERR_NONE;
   }
 
+
+  void output_transform(tf::Transform transform){
+    double yaw, pitch, roll;
+    transform.getBasis().getRPY(roll, pitch, yaw);
+    
+    tf::Quaternion q = transform.getRotation();
+    tf::Vector3 v = transform.getOrigin();
+
+    outInfo("- Translation: [" << v.getX() << ", " << v.getY() << ", " << v.getZ() << "]");
+    outInfo( "- Rotation: in Quaternion [" << q.getX() << ", " << q.getY() << ", " 
+              << q.getZ() << ", " << q.getW() << "]" << std::endl
+              << "            in RPY (radian) [" <<  roll << ", " << pitch << ", " << yaw << "]" << std::endl
+              << "            in RPY (degree) [" <<  roll*180.0/M_PI << ", " << pitch*180.0/M_PI << ", " << yaw*180.0/M_PI << "]"
+              );
+
+
+  }
+
   TyErrorId process(CAS &tcas, ResultSpecification const &res_spec)
   {
+    rs::StopWatch clock;
+    rs::SceneCas cas(tcas);
+    rs::Scene scene = cas.getScene();
 
     outInfo("posing the camera in unreal");
-   try{
-       /* auto t = transform.getOrigin();
-        std::cout << t.getX() << " " << t.getY() << " " << t.getZ() << std::endl;
-        tf::Quaternion q(
-          transform.getRotation().getX(),
-          transform.getRotation().getY(),
-          transform.getRotation().getZ(),
-          transform.getRotation().getW());
-        tf::Matrix3x3 m(q);
-        double roll, pitch, yaw;
-        m.getRPY(roll, pitch, yaw);
-        std::cout << roll << " " << pitch << " " << yaw << std::endl;
+    tf::StampedTransform camToWorld, worldToCam;
+    tf::StampedTransform ue4ToWorld;
 
-        geometry_msgs::Pose p;
-        p.position.x = t.getX();
-        p.position.y = t.getY();
-        p.position.z = t.getZ();
-        p.orientation.x = transform.getRotation().getX();
-        p.orientation.y = transform.getRotation().getY();
-        p.orientation.z = transform.getRotation().getZ();
-        p.orientation.w = transform.getRotation().getW();
+    camToWorld.setIdentity();
+    if (scene.viewPoint.has())
+    {
+      rs::conversion::from(scene.viewPoint.get(), camToWorld);
+    }
+    else
+    {
+      outWarn("No camera to world transformation, no further processing!");
+      throw rs::Exception("UE4 Spawner doesn't work without a stored viewpoint of the robot camera");
+    }
+    worldToCam =
+        tf::StampedTransform(camToWorld.inverse(), camToWorld.stamp_, camToWorld.child_frame_id_, camToWorld.frame_id_);
 
-        bf_com->SetCameraPose(p);
-        */
+
+    // Please note that the data from the Robot kinect is usually recorded in the rgb optical frame.
+    // The UE4 camera equivalent is the rgb LINK frame. So we have to respect this transform also.
+    tf::Transform kinect_optical_to_rgb_link;
+    tf::Vector3 kinect_optical_to_rgb_link_loc(0,0,0);
+    tf::Quaternion kinect_optical_to_rgb_link_rot (-0.5,0.5,-0.5,0.5);
+    kinect_optical_to_rgb_link.setOrigin(kinect_optical_to_rgb_link_loc);
+    kinect_optical_to_rgb_link.setRotation(kinect_optical_to_rgb_link_rot);
+
+    // HARD CODED UNREAL ENGINE 4 POSE. 
+    // THIS COULD BE IN THE ANNOTATOR PARAMETERS
+    // OR SEMANTIC MAP?
+    tf::Transform worldToUE4;
+    tf::Vector3 worldToUE4_loc(0.892, -1.836,0);
+    tf::Quaternion worldToUE4_rot (0,0,1,0);
+    worldToUE4.setOrigin(worldToUE4_loc);
+    worldToUE4.setRotation(worldToUE4_rot);
+
+    // Transform from RGB optical frame coordinates to ue4 world coordinates
+    tf::Transform ue4_cam_pose =  worldToUE4 * camToWorld * kinect_optical_to_rgb_link.inverse();
+
+    tf::Transform &ue4trans = ue4_cam_pose;
+
+
+    geometry_msgs::Pose p;
+    p.position.x = ue4trans.getOrigin().getX();
+    p.position.y = ue4trans.getOrigin().getY();
+    p.position.z = ue4trans.getOrigin().getZ();
+    p.orientation.x = ue4trans.getRotation().getX();
+    p.orientation.y = ue4trans.getRotation().getY();
+    p.orientation.z = ue4trans.getRotation().getZ();
+    p.orientation.w = ue4trans.getRotation().getW();
+
+    bf_com->SetCameraPose(p);
+
+
+
+    try{
+
 
         outInfo("reading the belief state ...");
 
-        rs::StopWatch clock;
-        rs::SceneCas cas(tcas);
-        rs::Scene scene = cas.getScene();
+
         long ts_sec=scene.timestamp()/1000000000;
         long ts_nsec=scene.timestamp()%1000000000;
         outInfo("TimeStamp: ******* "<< ts_sec<<" "<<ts_nsec<<" "<<scene.timestamp());
         //look for the transfrom real camera to unreal
-        listener.lookupTransform("/ue4_world","/map",
-                                 ros::Time(ts_sec,ts_nsec), transform);
+        // listener.lookupTransform("/ue4_world","/map", // removed for Mongo DB compatability 
+        //                          ros::Time(ts_sec,ts_nsec), transform);
 
         std::vector<rs::Object> hyps;
         std::vector<rs::MergedHypothesis> mHyps;
@@ -112,7 +163,7 @@ public:
         outInfo("Found "<<hyps.size()<<" object hypotheses");
         for (auto h:hyps)
         {
-         try{
+          try{
 
           //get the pose, class, shape and color of each hypothesis
           std::vector<rs::PoseAnnotation>  poses;
@@ -151,48 +202,144 @@ public:
           outInfo("OBJ ID ************: "<<h.id.get());
           //set the right category and material of the hypothesis to spawn
           bf_com->rsToUE4ModelMap(srv);
+
+          outInfo("Mapped Labels to UE4 models. Setting id....");
           //set the ID of the hypothesis to spawn or automatic generation of ID
           srv.request.id=h.id.get();
-          geometry_msgs::PoseStamped p,q;
-          p.header.stamp=ros::Time(ts_sec,ts_nsec);
-          p.header.frame_id="/head_mount_kinect_rgb_optical_frame";
-          p.pose.position.x = poses[0].camera.get().translation.get()[0];
-          p.pose.position.y = poses[0].camera.get().translation.get()[1];
-          p.pose.position.z = poses[0].camera.get().translation.get()[2];
-          p.pose.orientation.x = poses[0].camera.get().rotation.get()[0];
-          p.pose.orientation.y = poses[0].camera.get().rotation.get()[1];
-          p.pose.orientation.z = poses[0].camera.get().rotation.get()[2];
-          p.pose.orientation.w = poses[0].camera.get().rotation.get()[3];
-          //transform to ue4_world
-          listener.transformPose("/ue4_world",p,q);
-          //set the pose of the hypothesis
-          tf::Quaternion r(q.pose.orientation.x,q.pose.orientation.y,q.pose.orientation.z,q.pose.orientation.w);
+
+          // OLD transform from kinect to ue4 (requires TF - can't be used with mongo)
+
+          // {
+          // geometry_msgs::PoseStamped p,q;
+          // p.header.stamp=ros::Time(ts_sec,ts_nsec);
+          // p.header.frame_id="/head_mount_kinect_rgb_optical_frame";
+          // p.pose.position.x = poses[0].camera.get().translation.get()[0];
+          // p.pose.position.y = poses[0].camera.get().translation.get()[1];
+          // p.pose.position.z = poses[0].camera.get().translation.get()[2];
+          // p.pose.orientation.x = poses[0].camera.get().rotation.get()[0];
+          // p.pose.orientation.y = poses[0].camera.get().rotation.get()[1];
+          // p.pose.orientation.z = poses[0].camera.get().rotation.get()[2];
+          // p.pose.orientation.w = poses[0].camera.get().rotation.get()[3];
+          // //transform to ue4_world
+          // listener.transformPose("/ue4_world",p,q);
+          // //set the pose of the hypothesis
+          // tf::Quaternion r(q.pose.orientation.x,q.pose.orientation.y,q.pose.orientation.z,q.pose.orientation.w);
+          // if(bf_com->isToRotate(srv))
+          //   r.setRotation(r.getAxis(),r.getAngle()-M_PI/2.0);
+          // else
+          //   r.setRotation(r.getAxis(),r.getAngle());
+          // srv.request.pose.position.x = q.pose.position.x;
+          // srv.request.pose.position.y = q.pose.position.y;
+          // srv.request.pose.position.z = q.pose.position.z;
+          // srv.request.pose.orientation.x = r.getX();
+          // srv.request.pose.orientation.y = r.getY();
+          // srv.request.pose.orientation.z = r.getZ();
+          // srv.request.pose.orientation.w = r.getW();
+          // }
+
+
+          outInfo("Transform Object....");
+          geometry_msgs::Pose p,q;
+          p.position.x = poses[0].camera.get().translation.get()[0];
+          p.position.y = poses[0].camera.get().translation.get()[1];
+          p.position.z = poses[0].camera.get().translation.get()[2];
+          p.orientation.x = poses[0].camera.get().rotation.get()[0];
+          p.orientation.y = poses[0].camera.get().rotation.get()[1];
+          p.orientation.z = poses[0].camera.get().rotation.get()[2];
+          p.orientation.w = poses[0].camera.get().rotation.get()[3];
+
+          tf::Transform object_pose;
+          tf::Vector3 object_pose_loc(p.position.x, p.position.y, p.position.z);
+          tf::Quaternion object_pose_rot (
+            p.orientation.x,p.orientation.y,p.orientation.z,p.orientation.w);
+          object_pose.setOrigin(object_pose_loc);
+          object_pose.setRotation(object_pose_rot);
+
+          tf::Transform object_transform_in_ue4 = worldToUE4 * camToWorld * object_pose;
+          
+
+          q.position.x = object_transform_in_ue4.getOrigin().getX();
+          q.position.y = object_transform_in_ue4.getOrigin().getY();
+          q.position.z = object_transform_in_ue4.getOrigin().getZ();
+          // TODO Fix rotation fail for cornflakes
+          q.orientation.x = object_transform_in_ue4.getRotation().getX();
+          q.orientation.y = object_transform_in_ue4.getRotation().getY();
+          q.orientation.z = object_transform_in_ue4.getRotation().getZ();
+          q.orientation.w = object_transform_in_ue4.getRotation().getW(); 
+
+
+          tf::Quaternion r(q.orientation.x,q.orientation.y,q.orientation.z,q.orientation.w);
           if(bf_com->isToRotate(srv))
             r.setRotation(r.getAxis(),r.getAngle()-M_PI/2.0);
           else
             r.setRotation(r.getAxis(),r.getAngle());
-          srv.request.pose.position.x = q.pose.position.x;
-          srv.request.pose.position.y = q.pose.position.y;
-          srv.request.pose.position.z = q.pose.position.z;
+          srv.request.pose.position.x = q.position.x;
+          srv.request.pose.position.y = q.position.y;
+          srv.request.pose.position.z = q.position.z;
           srv.request.pose.orientation.x = r.getX();
           srv.request.pose.orientation.y = r.getY();
           srv.request.pose.orientation.z = r.getZ();
           srv.request.pose.orientation.w = r.getW();
+
+
           //set the mobility of the hypothesis
           srv.request.physics_properties.mobility = 0;
           //spawn hypothesis
-          bf_com->SpawnObject(srv,confidence);
-        }catch (Exception ex){
-          ROS_ERROR("%s",ex.what());
-        }
 
-    }
-   }catch (Exception ex){
+          outInfo("Sending Service request");
+          bf_com->SpawnObject(srv,confidence);
+          outInfo("Done with Service request");
+
+          }catch (Exception ex){
             ROS_ERROR("%s",ex.what());
-   }
- 
+          }
+
+          }
+          }catch (Exception ex){
+            ROS_ERROR("%s",ex.what());
+          }
+    return UIMA_ERR_NONE;
   }
 };
+
+
+
+    // output_transform(camToWorld * ue4toworld_nonstamped);
+    // output_transform(ue4toworld_nonstamped * camToWorld);
+
+    // output_transform(worldToCam * ue4toworld_nonstamped);
+    // output_transform(ue4toworld_nonstamped * worldToCam);
+
+    // output_transform(camToWorld * ue4toworld_nonstamped.inverse());
+    // output_transform(ue4toworld_nonstamped.inverse() * camToWorld);
+
+    // output_transform(worldToCam * ue4toworld_nonstamped.inverse());
+    // output_transform(ue4toworld_nonstamped.inverse() * worldToCam);
+
+       /* auto t = transform.getOrigin();
+        std::cout << t.getX() << " " << t.getY() << " " << t.getZ() << std::endl;
+        tf::Quaternion q(
+          transform.getRotation().getX(),
+          transform.getRotation().getY(),
+          transform.getRotation().getZ(),
+          transform.getRotation().getW());
+        tf::Matrix3x3 m(q);
+        double roll, pitch, yaw;
+        m.getRPY(roll, pitch, yaw);
+        std::cout << roll << " " << pitch << " " << yaw << std::endl;
+
+        geometry_msgs::Pose p;
+        p.position.x = t.getX();
+        p.position.y = t.getY();
+        p.position.z = t.getZ();
+        p.orientation.x = transform.getRotation().getX();
+        p.orientation.y = transform.getRotation().getY();
+        p.orientation.z = transform.getRotation().getZ();
+        p.orientation.w = transform.getRotation().getW();
+
+        bf_com->SetCameraPose(p);
+        */
+
 
 // This macro exports an entry point that is used to create the annotator.
 MAKE_AE(UE4Spawner)
