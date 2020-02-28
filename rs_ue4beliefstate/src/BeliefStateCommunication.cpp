@@ -26,6 +26,8 @@
 #include <rs/utils/time.h>
 #include <rs/types/all_types.h>
 
+bool BeliefStateCommunication::belief_changed_in_last_iteration = false;
+
 BeliefStateCommunication::BeliefStateCommunication(ros::NodeHandle &nh) : n(nh)
 {}
 
@@ -237,17 +239,25 @@ bool BeliefStateCommunication::deleteEpisodicMemory(std::string object_id, std::
           return false;
   }else
     disap=0;
+
+  // Guess: Check that the object has the same label as before.
+  // If yes, skip deletion. If no, delete the model.
   if(std::get<0>(it->second)==object_name)
-  {   //improve understanding of an object
-      if(std::get<1>(it->second)<confidence){
-          episodic_memory.erase(object_id);
-          BeliefStateCommunication::updateEpisodicMemory(object_id,object_name,confidence,disap);
-      }
-     return false;
+  {   //improve understanding of an object (e.g increase confidence if the object has now been seen with a higher conf?)
+    if(std::get<1>(it->second)<confidence){
+      episodic_memory.erase(object_id);
+      deleteFroMismatchMap(object_id);
+      BeliefStateCommunication::updateEpisodicMemory(object_id,object_name,confidence,disap);
+    }
+    ROS_INFO_STREAM("it->second == object_name triggered: " << object_name);
+    return false;
   }
   //make the belief state more stable
-  if(confidence<0.6 || std::get<1>(it->second)>confidence+0.1)
-     return false;
+  if(confidence<0.6 || std::get<1>(it->second)>confidence+0.1){
+    ROS_INFO_STREAM("Confidence and or confidence+0.1 hit");
+    return false;
+  }
+
   model.request.id=object_id;
   //check whether or not the spawning service server was reached
   if (!delete_client.call(model))
@@ -262,10 +272,12 @@ bool BeliefStateCommunication::deleteEpisodicMemory(std::string object_id, std::
      ROS_ERROR("Service call returned false");
      return false;
   }
+  BeliefStateCommunication::belief_changed_in_last_iteration = true;
   //print the ID of the spawned hypothesis
   ROS_INFO_STREAM("Object delete with ID " << model.request.id);
  //clear episodic memory
   episodic_memory.erase(object_id);
+  deleteFroMismatchMap(object_id);
   ROS_INFO_STREAM("\n finalizing deletion of episodic memory \n ");
   return true;
 }
@@ -273,11 +285,35 @@ bool BeliefStateCommunication::deleteEpisodicMemory(std::string object_id, std::
 bool BeliefStateCommunication::updateEpisodicMemory(std::string object_id, std::string object_name, float confidence, int disappeared)
 {
    ROS_INFO_STREAM("updating episodic memory ...");
-   episodic_memory.insert(std::pair<std::string,std::tuple<std::string,float,int>>(object_id,std::tuple<std::string,float,int>(object_name,confidence,disappeared)));
+   ROS_INFO_STREAM("Inserting:" << object_id << " name: " << object_name << " confidence:" << confidence << " dis: " << disappeared );
+   episodic_memory.insert(
+    std::pair<std::string,std::tuple<std::string,float,int>>(object_id,
+                                                  std::tuple<std::string,float,int>(object_name,confidence,disappeared))
+    );
+   addToMismatchMap(object_id,false);
    ROS_INFO_STREAM("finalizing update of episodic memory ...");
    return true;
 }
 
+void BeliefStateCommunication::printEpisodicMemoryMap(){
+
+  // std::map<std::string,std::tuple<std::string,float,int>>::iterator it = episodic_memory.begin();
+  
+  for(auto episodic_memory_it: episodic_memory)
+  {
+    const std::string &object_key = episodic_memory_it.first;
+    const std::tuple<std::string,float,int> &value = episodic_memory_it.second;
+
+    auto object_name = std::get<0>(value);
+    auto confidence = std::get<1>(value);
+    auto disappeared = std::get<2>(value);
+    bool mismatch = getMismatchStatusFor(object_key);
+    ROS_INFO_STREAM("<EM Entry> key = " << object_key << " name: " << object_name << " confidence: " << confidence << " dis: " << disappeared << " mismatch: " << mismatch );
+    // episodic_memory_it->second;
+    
+    // std::map<std::string,std::tuple<std::string,float,int>> episodic_memory={};
+  }
+}
 
 bool BeliefStateCommunication::SetCameraPose(geometry_msgs::Pose p)
 {
@@ -302,3 +338,15 @@ bool BeliefStateCommunication::SetCameraPose(geometry_msgs::Pose p)
 
   return true;
 } 
+
+std::string BeliefStateCommunication::getCurrentObjectNameForId(std::string object_id)
+{
+  std::map<std::string,std::tuple<std::string,float,int>>::iterator it;
+  it = episodic_memory.find(object_id);
+
+  // TODO exception or reference to status variable if ID couldn't be found
+  if(it == episodic_memory.end())
+      return std::string("");
+
+  return std::get<0>(it->second);
+}

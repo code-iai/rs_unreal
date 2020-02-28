@@ -6,10 +6,12 @@
 #include <rs/scene_cas.h>
 #include <rs/utils/time.h>
 #include <rs/DrawingAnnotator.h>
+#include <rs/compare.h>
 
 #include <image_transport/image_transport.h>
 #include <cv_bridge/cv_bridge.h>
 #include <sensor_msgs/image_encodings.h>
+#include "rs_ue4beliefstate/BeliefStateCommunication.h"
 
 using namespace uima;
 
@@ -334,15 +336,30 @@ public:
       clusters[idx].annotations.append(color_hist_annotation);
     }
 
+    // Check the color distances - Every cluster should now have a 
+    // color histogram from the real world data + 
+    // the simulation
+    for(size_t idx = 0; idx < clusters.size(); ++idx){
+          std::vector<rs::ColorHistogram> colors;
+          clusters[idx].annotations.filter(colors);
 
+          outInfo("Object cluster #" << idx << " has " << colors.size() << " color histograms");
+          if(colors.size()!=2){
+            outError("  Cluster Color executed but still only one color histogram on this cluster. Continue...");
+            continue;
+          }
 
-
-
-
-
-
-
-
+          double dist = rs::compare(colors[0], colors[1]);
+          outInfo("matching score " << dist);
+          if(BeliefStateCommunication::belief_changed_in_last_iteration)
+          {
+            if(dist >= 0.8)
+            {
+              outInfo("BeliefState has been changed in last iteration and now there is a mismatch in Cluster idx#" << idx);
+              ros::Duration(5).sleep();
+            }
+          }
+    }
 
 
     outInfo("took: " << clock.getTime() << " ms.");

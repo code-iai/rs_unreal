@@ -35,7 +35,13 @@ private:
     ros::ServiceClient client;
     ros::ServiceClient delete_client;
     std::map<std::string,std::tuple<std::string,float,int>> episodic_memory={};
+
+
 public:
+
+  typedef std::map<std::string, bool> mismatchmap;
+  mismatchmap mismatches;
+  
   BeliefStateCommunication(std::string domain="pie_rwc/spawn_model");
   BeliefStateCommunication(ros::NodeHandle &nh);
   ~BeliefStateCommunication();
@@ -59,7 +65,42 @@ public:
   void rsToUE4ModelMap(world_control_msgs::SpawnModel& model);
   bool deleteEpisodicMemory(std::string object_id, std::string object_name, float confidence, int disappeared);
   bool updateEpisodicMemory(std::string object_id, std::string object_name, float confidence, int disappeared);
+  void printEpisodicMemoryMap();
   bool isToRotate(world_control_msgs::SpawnModel& model);
+  std::string getCurrentObjectNameForId(std::string object_id);
+  void addToMismatchMap(std::string object_id, bool mismatch)
+  {
+    mismatches.insert(
+      std::pair<std::string, bool>(object_id, mismatch)
+    );
+  }
+
+  void deleteFroMismatchMap(std::string object_id){
+    mismatches.erase(object_id);   
+  }
+
+  bool getMismatchStatusFor(std::string object_id)
+  {
+    mismatchmap::iterator it;
+    it = mismatches.find(object_id);
+
+    // TODO exception or reference to status variable if ID couldn't be found
+    if(it == mismatches.end()){
+      ROS_WARN_STREAM("  Mismatch Entry for " << object_id << " couldn't be found. Returning false as mismatch value.");
+      return false;
+    }
+
+
+    return it->second;
+  }
+
+  void setMismatchFor(std::string object_id, bool mismatch)
+  {
+    mismatches.at(object_id) = mismatch;
+  }
+
+
+  static bool belief_changed_in_last_iteration;
 };
 
 #endif // __BELIEF_STATE_COMMUNICATION_H

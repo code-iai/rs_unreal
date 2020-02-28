@@ -36,13 +36,14 @@ class UE4Spawner : public Annotator
 {
 private:
   std::string domain="pie_rwc";
-  BeliefStateCommunication* bf_com;
+
   tf::TransformListener listener;
   ros::WallTime start_, end_;
   tf::StampedTransform transform;
 
 
 public:
+  BeliefStateCommunication* bf_com;
 
   TyErrorId initialize(AnnotatorContext &ctx)
   {
@@ -54,6 +55,8 @@ public:
       }
       //defining the communicator
       bf_com = new BeliefStateCommunication(domain);
+
+      BeliefStateCommunication::belief_changed_in_last_iteration = false;
       return UIMA_ERR_NONE;
   }
 
@@ -85,6 +88,7 @@ public:
 
   TyErrorId process(CAS &tcas, ResultSpecification const &res_spec)
   {
+    BeliefStateCommunication::belief_changed_in_last_iteration = false;
     rs::StopWatch clock;
     rs::SceneCas cas(tcas);
     rs::Scene scene = cas.getScene();
@@ -146,7 +150,8 @@ public:
     try{
 
 
-        outInfo("reading the belief state ...");
+        outInfo("Current belief state ...");
+        bf_com->printEpisodicMemoryMap();
 
 
         long ts_sec=scene.timestamp()/1000000000;
@@ -161,8 +166,13 @@ public:
         cas.get(VIEW_OBJECTS, hyps);
         scene.identifiables.filter(mHyps);
         outInfo("Found "<<hyps.size()<<" object hypotheses");
+
+        int cluster_id = -1;
         for (auto h:hyps)
         {
+          cluster_id++;
+          outInfo("OBJ CLUSTER ID: "<<cluster_id << " has identifiable id: " << h.id.get());
+
           try{
 
           //get the pose, class, shape and color of each hypothesis
@@ -187,23 +197,30 @@ public:
           //set the rs category of the hypothesis to spawn
           if(classes.size()>0)
           {
-             //name
-             srv.request.name=classes[0].classname.get();
-             //confidence
-             confidence=classes[0].confidences.get()[0].score.get();
-             outInfo("OBJ ID SCORE ++++++++++++: "<<confidence);
 
+            outInfo("  Current object name in the belief is: " << bf_com->getCurrentObjectNameForId(h.id.get()));
+            //name
+            srv.request.name=classes[0].classname.get();
+            //confidence
+            confidence=classes[0].confidences.get()[0].score.get();
+            outInfo("  Object class and confidence ++++++++++++: " << classes[0].classname.get() << "(" << confidence << ")");
           }else{
             bf_com->deleteEpisodicMemory(h.id.get(),"",100000,1);
+            outInfo("  No classification on this cluster_id: "<<cluster_id);
             continue;
           }
-          if(!(bf_com->deleteEpisodicMemory(h.id.get(),srv.request.name,confidence,0)))
-              continue;
-          outInfo("OBJ ID ************: "<<h.id.get());
+
+
+          if(!(bf_com->deleteEpisodicMemory(h.id.get(),srv.request.name,confidence,0))){
+                outInfo("  DeleteEpisodicMemory failed on: "<<cluster_id);
+                continue;
+          }
+
+          // outInfo("  OBJ ID ************: "<<h.id.get());
           //set the right category and material of the hypothesis to spawn
           bf_com->rsToUE4ModelMap(srv);
 
-          outInfo("Mapped Labels to UE4 models. Setting id....");
+          outInfo("  Mapped Labels to UE4 models. Setting id....");
           //set the ID of the hypothesis to spawn or automatic generation of ID
           srv.request.id=h.id.get();
 
@@ -238,7 +255,7 @@ public:
           // }
 
 
-          outInfo("Transform Object....");
+          outInfo("  Transform Object....");
           geometry_msgs::Pose p,q;
           p.position.x = poses[0].camera.get().translation.get()[0];
           p.position.y = poses[0].camera.get().translation.get()[1];
@@ -286,9 +303,11 @@ public:
           srv.request.physics_properties.mobility = 0;
           //spawn hypothesis
 
-          outInfo("Sending Service request");
+          outInfo("  Sending Service request");
           bf_com->SpawnObject(srv,confidence);
-          outInfo("Done with Service request");
+          outInfo("  Done with Service request");
+
+          BeliefStateCommunication::belief_changed_in_last_iteration = true;
 
           }catch (Exception ex){
             ROS_ERROR("%s",ex.what());
@@ -298,6 +317,9 @@ public:
           }catch (Exception ex){
             ROS_ERROR("%s",ex.what());
           }
+
+    // Allow the rendering stuff to settle
+    ros::Duration(1.5).sleep();
     return UIMA_ERR_NONE;
   }
 };

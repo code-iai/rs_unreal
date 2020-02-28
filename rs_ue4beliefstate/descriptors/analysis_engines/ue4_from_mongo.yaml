@@ -1,6 +1,7 @@
 ae:
   name: ue4_from_mongo
 fixedflow:
+  - Trigger
   - CollectionReader
   - ImagePreprocessor
   - RegionFilter
@@ -13,8 +14,9 @@ fixedflow:
   - CaffeAnnotator
   - KnnAnnotator
   - ObjectIdentityResolution
+  - ClusterColorFromBeliefState
   - UE4Spawner
 CollectionReader:
-  camera_config_files: ['config_mongodb_playback_ue4.ini']
+  camera_config_files: ['config_mongodb_playback_ue4.ini','config_unreal_vision_ue4.ini']
 RegionFilter:
     enable_change_detection: false
