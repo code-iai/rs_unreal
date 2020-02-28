@@ -232,7 +232,8 @@ public:
 
     // Color C&P
     rs::Scene scene = cas.getScene();
-    std::vector<rs::ObjectHypothesis> clusters;
+    // std::vector<rs::ObjectHypothesis> clusters; //// CHANGED BY PM - THIS WAS DEFAULT 
+    std::vector<rs::Object> clusters;
     //                                                       TODO WARNING IMPORTANT. This changes the input
     // cas.get(VIEW_COLOR_IMAGE, color_mat_,0);
     cas.get(VIEW_COLOR_IMAGE, color_mat_, camera_id_);
@@ -240,7 +241,8 @@ public:
 
     bool found = false;
 
-    scene.identifiables.filter(clusters);
+    cas.get(VIEW_OBJECTS, clusters);
+    // scene.identifiables.filter(clusters);      //// CHANGED BY PM - THIS WAS DEFAULT 
     cluster_rois_.resize(clusters.size());
     color_ids_.resize(clusters.size(), std::vector<int>(COUNT));
     color_ratios_.resize(clusters.size(), std::vector<float>(COUNT));
@@ -344,19 +346,23 @@ public:
           clusters[idx].annotations.filter(colors);
 
           outInfo("Object cluster #" << idx << " has " << colors.size() << " color histograms");
+          outInfo("  ID is " << clusters[idx].id.get());
           if(colors.size()!=2){
             outError("  Cluster Color executed but still only one color histogram on this cluster. Continue...");
             continue;
           }
 
           double dist = rs::compare(colors[0], colors[1]);
-          outInfo("matching score " << dist);
+          outInfo("  matching score " << dist);
           if(BeliefStateCommunication::belief_changed_in_last_iteration)
           {
             if(dist >= 0.8)
             {
-              outInfo("BeliefState has been changed in last iteration and now there is a mismatch in Cluster idx#" << idx);
+              outInfo("  BeliefState has been changed in last iteration and now there is a mismatch in Cluster idx#" << idx);
+              // BeliefStateAccessor::instance()->setMismatchFor(clusters[idx].id.get(), true);
               ros::Duration(5).sleep();
+            }else{
+              // BeliefStateAccessor::instance()->setMismatchFor(clusters[idx].id.get(), false);
             }
           }
     }

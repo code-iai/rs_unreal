@@ -41,8 +41,9 @@ public:
 
   typedef std::map<std::string, bool> mismatchmap;
   mismatchmap mismatches;
-  
-  BeliefStateCommunication(std::string domain="pie_rwc/spawn_model");
+
+  // BeliefStateCommunication(std::string domain="pie_rwc/spawn_model");  
+  BeliefStateCommunication(std::string domain="pie_rwc");
   BeliefStateCommunication(ros::NodeHandle &nh);
   ~BeliefStateCommunication();
 
@@ -102,5 +103,38 @@ public:
 
   static bool belief_changed_in_last_iteration;
 };
+
+
+ class BeliefStateAccessor
+ {
+ public:
+    static BeliefStateCommunication* instance ()
+    {
+       static CGuard g;   // Speicherbereinigung
+       if (!_instance)
+          _instance = new BeliefStateCommunication ();
+       return _instance;
+    }
+ private:
+    static BeliefStateCommunication* _instance;
+ //    BeliefStateAccessor () { } /* verhindert, dass ein Objekt von außerhalb von N erzeugt wird. */
+ //              // protected, wenn man von der Klasse noch erben möchte
+ //    BeliefStateAccessor ( const BeliefStateAccessor& ); /* verhindert, dass eine weitere Instanz via
+ // Kopie-Konstruktor erstellt werden kann */
+ //    ~BeliefStateAccessor () { }
+    class CGuard
+    {
+    public:
+       ~CGuard()
+       {
+          if( NULL != BeliefStateAccessor::_instance )
+          {
+             delete BeliefStateAccessor::_instance;
+             BeliefStateAccessor::_instance = NULL;
+          }
+       }
+    };
+ };
+ BeliefStateCommunication* BeliefStateAccessor::_instance = 0;
 
 #endif // __BELIEF_STATE_COMMUNICATION_H

@@ -43,7 +43,7 @@ private:
 
 
 public:
-  BeliefStateCommunication* bf_com;
+  // BeliefStateCommunication* bf_com;
 
   TyErrorId initialize(AnnotatorContext &ctx)
   {
@@ -54,7 +54,9 @@ public:
            ctx.extractValue("domain", domain);
       }
       //defining the communicator
-      bf_com = new BeliefStateCommunication(domain);
+      // bf_com = new BeliefStateCommunication(domain);
+
+      // BeliefStateAccessor::instance();
 
       BeliefStateCommunication::belief_changed_in_last_iteration = false;
       return UIMA_ERR_NONE;
@@ -63,8 +65,8 @@ public:
   TyErrorId destroy()
   {
     outInfo("destroy");
-    if(bf_com!=nullptr)
-          free(bf_com);
+    // if(bf_com!=nullptr)
+          // free(bf_com);
     return UIMA_ERR_NONE;
   }
 
@@ -143,7 +145,8 @@ public:
     p.orientation.z = ue4trans.getRotation().getZ();
     p.orientation.w = ue4trans.getRotation().getW();
 
-    bf_com->SetCameraPose(p);
+    // bf_com->SetCameraPose(p);
+    BeliefStateAccessor::instance()->SetCameraPose(p);
 
 
 
@@ -151,7 +154,8 @@ public:
 
 
         outInfo("Current belief state ...");
-        bf_com->printEpisodicMemoryMap();
+        BeliefStateAccessor::instance()->printEpisodicMemoryMap();
+        // bf_com->printEpisodicMemoryMap();
 
 
         long ts_sec=scene.timestamp()/1000000000;
@@ -190,7 +194,9 @@ public:
           world_control_msgs::SpawnModel srv;
 
           if(h.inView.get() && (h.disappeared.get()))
-              bf_com->deleteEpisodicMemory(h.id.get(),"",100000,1);
+              // bf_com->deleteEpisodicMemory(h.id.get(),"",100000,1);
+              BeliefStateAccessor::instance()->deleteEpisodicMemory(h.id.get(),"",100000,1);
+            
           if( !h.inView.get() || h.disappeared.get())
               continue;
 
@@ -198,27 +204,31 @@ public:
           if(classes.size()>0)
           {
 
-            outInfo("  Current object name in the belief is: " << bf_com->getCurrentObjectNameForId(h.id.get()));
+            // outInfo("  Current object name in the belief is: " << bf_com->getCurrentObjectNameForId(h.id.get()));
+            outInfo("  Current object name in the belief is: " << BeliefStateAccessor::instance()->getCurrentObjectNameForId(h.id.get()));
             //name
             srv.request.name=classes[0].classname.get();
             //confidence
             confidence=classes[0].confidences.get()[0].score.get();
             outInfo("  Object class and confidence ++++++++++++: " << classes[0].classname.get() << "(" << confidence << ")");
           }else{
-            bf_com->deleteEpisodicMemory(h.id.get(),"",100000,1);
+            // bf_com->deleteEpisodicMemory(h.id.get(),"",100000,1);
+            BeliefStateAccessor::instance()->deleteEpisodicMemory(h.id.get(),"",100000,1);
             outInfo("  No classification on this cluster_id: "<<cluster_id);
             continue;
           }
 
 
-          if(!(bf_com->deleteEpisodicMemory(h.id.get(),srv.request.name,confidence,0))){
+          // if(!(bf_com->deleteEpisodicMemory(h.id.get(),srv.request.name,confidence,0))){
+          if(!(BeliefStateAccessor::instance()->deleteEpisodicMemory(h.id.get(),srv.request.name,confidence,0))){
                 outInfo("  DeleteEpisodicMemory failed on: "<<cluster_id);
                 continue;
           }
 
           // outInfo("  OBJ ID ************: "<<h.id.get());
           //set the right category and material of the hypothesis to spawn
-          bf_com->rsToUE4ModelMap(srv);
+          // bf_com->rsToUE4ModelMap(srv);
+          BeliefStateAccessor::instance()->rsToUE4ModelMap(srv);
 
           outInfo("  Mapped Labels to UE4 models. Setting id....");
           //set the ID of the hypothesis to spawn or automatic generation of ID
@@ -286,7 +296,8 @@ public:
 
 
           tf::Quaternion r(q.orientation.x,q.orientation.y,q.orientation.z,q.orientation.w);
-          if(bf_com->isToRotate(srv))
+          // if(bf_com->isToRotate(srv))
+          if(BeliefStateAccessor::instance()->isToRotate(srv))
             r.setRotation(r.getAxis(),r.getAngle()-M_PI/2.0);
           else
             r.setRotation(r.getAxis(),r.getAngle());
@@ -304,7 +315,8 @@ public:
           //spawn hypothesis
 
           outInfo("  Sending Service request");
-          bf_com->SpawnObject(srv,confidence);
+          // bf_com->SpawnObject(srv,confidence);
+          BeliefStateAccessor::instance()->SpawnObject(srv,confidence);
           outInfo("  Done with Service request");
 
           BeliefStateCommunication::belief_changed_in_last_iteration = true;
